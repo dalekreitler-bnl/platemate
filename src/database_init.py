@@ -5,61 +5,34 @@ Created on Sat Aug  5 19:09:04 2023
 
 @author: dkreitler
 """
-
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
-from sqlalchemy.orm import sessionmaker, relationship, declarative_base
+from models import Base, LibraryPlateType, LibraryWellType, LibraryPlate, LibraryWell
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
 import pandas
 
-engine = create_engine("sqlite:///test3.db")
-Base = declarative_base()
+engine = create_engine("sqlite:///../test/test.db")
 Session = sessionmaker(bind=engine)
 session = Session()
 
 
-class LibraryPlate(Base):
-    __tablename__ = "library_plate"
-    id = Column(String, primary_key=True)
-    wells = relationship("LibraryWell", back_populates="plate")
-    plate_type = Column(String, nullable=False)
+def init_db():
+    # Creating types
+    lib_well_type = LibraryWellType(name="1536LDV well", smiles="C")
+    lib_plate_type = LibraryPlateType(name="1536LDV", rows=100, columns=100)
+    lib_plate_type.well_types.append(lib_well_type)
+
+    lib_plate = LibraryPlate(library_plate_type=lib_plate_type, name="1536LDV #1")
+    lib_well = LibraryWell(plate=lib_plate, library_well_type=lib_well_type)
+
+    session.add_all([lib_well_type, lib_plate_type, lib_plate, lib_well])
+    session.commit()
 
 
-class LibraryWell(Base):
-    __tablename__ = "library_well"
-    id = Column(Integer, primary_key=True)
-    smiles = Column(String, nullable=False)
-    well = Column(String, nullable=False)
-    catalog_id = Column(String, nullable=False)
-    plate_id = Column(Integer, ForeignKey("library_plate.id"))
-    plate = relationship("LibraryPlate", back_populates="wells")
+if __name__ == "__main__":
+    Base.metadata.create_all(engine)
+    init_db()
 
-
-class XtalPlate(Base):
-    __tablename__ = "xtal_plate"
-    id = Column(String, primary_key=True)
-    plate_type = Column(String, nullable=False)
-    wells = relationship("XtalWell", back_populates="plate")
-
-
-class XtalWell(Base):
-    __tablename__ = "xtal_well"
-    id = Column(Integer, primary_key=True)
-    well = Column(String, nullable=False)
-    position = Column(String)
-    plate_id = Column(String, ForeignKey("xtal_plate.id"))
-    plate = relationship("XtalPlate", back_populates="wells")
-
-
-class PlateMap(Base):
-    __tablename__ = "plate_map"
-    id = Column(Integer, primary_key=True)
-    echo = Column(String, nullable=False)
-    shifter = Column(String, nullable=False)
-    plate_type = Column(String, nullable=False)
-
-
-Base.metadata.create_all(engine)
-
-
+"""
 # populating the database
 df = pandas.read_csv("~/Documents/dsip.csv")
 df2 = pandas.read_csv("~/Documents/imaging.csv", skiprows=8)
@@ -67,7 +40,7 @@ df2.rename(columns={";PlateType": "PlateType"}, inplace=True)
 library_plate = LibraryPlate(id=df["plate_id"][1], plate_type="1536LDV")
 xtal_plate = XtalPlate(id=df2["PlateID"][1], plate_type=df2["PlateType"][1])
 
-#2 vertical drop plate map
+# 2 vertical drop plate map
 
 a_to_p = [
     "A",
@@ -118,3 +91,5 @@ for index, row in df.iterrows():
     session.add(library_well)
 
 session.commit()
+
+"""
