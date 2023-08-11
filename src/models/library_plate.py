@@ -33,7 +33,8 @@ class LibraryPlateType(Base):
         back_populates="library_plate_type",
     )
     # Plates related to this type
-    library_plates = relationship("LibraryPlate", back_populates="library_plate_type")
+    library_plates = relationship(
+        "LibraryPlate", back_populates="library_plate_type")
 
     # Metadata
     name = Column(String, nullable=False)
@@ -47,7 +48,8 @@ class LibraryPlate(Base):
 
     # Relationships
     # Every plate has a related plate type
-    library_plate_type_uid = Column(Integer, ForeignKey("library_plate_type.uid"))
+    library_plate_type_uid = Column(
+        Integer, ForeignKey("library_plate_type.uid"))
     library_plate_type = relationship(
         "LibraryPlateType", back_populates="library_plates"
     )
@@ -69,11 +71,11 @@ class LibraryWellType(Base):
         back_populates="well_types",
     )
     # Multiple wells can have the same type, therefore many-to-one
-    library_wells = relationship("LibraryWell", back_populates="library_well_type")
+    library_wells = relationship(
+        "LibraryWell", back_populates="library_well_type")
 
     # Metadata
     name = Column(String, nullable=False)
-    smiles = Column(String, nullable=False)
 
 
 class LibraryWell(Base):
@@ -85,9 +87,12 @@ class LibraryWell(Base):
     plate_uid = Column(Integer, ForeignKey("library_plate.uid"))
     plate = relationship("LibraryPlate", back_populates="wells")
     # Multiple wells have the same type, therefore many-to-one
-    library_well_type_uid = Column(Integer, ForeignKey("library_well_type.uid"))
-    library_well_type = relationship("LibraryWellType", back_populates="library_wells")
+    library_well_type_uid = Column(
+        Integer, ForeignKey("library_well_type.uid"))
+    library_well_type = relationship(
+        "LibraryWellType", back_populates="library_wells")
 
     # Relationships
     used = Column(Boolean, default=False)
     catalog_id = Column(String, nullable=True)
+    smiles = Column(String, nullable=True)
