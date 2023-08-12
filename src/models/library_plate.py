@@ -96,3 +96,5 @@ class LibraryWell(Base):
     used = Column(Boolean, default=False)
     catalog_id = Column(String, nullable=True)
     smiles = Column(String, nullable=True)
+
+    sequence = Column(Integer, nullable=False)

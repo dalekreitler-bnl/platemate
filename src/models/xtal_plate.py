@@ -97,6 +97,7 @@ class XtalWell(Base):
 
     # Metadata
     harvesting_status = Column(Boolean, default=False)  # bool
+    sequence = Column(Integer, nullable=False)
 
 
 class DropPosition(Base):
