@@ -38,7 +38,7 @@ class Batch(Base):
     # Relationships
     echo_transfers = relationship("EchoTransfer", back_populates="batch")
 
-    # Metadata
+    # Metadata, if user forgets to manually update this is our upper bound
     timestamp = Column(DateTime, default=datetime.now())
 
 
