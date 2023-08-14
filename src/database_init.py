@@ -7,6 +7,7 @@ Created on Sat Aug  5 19:09:04 2023
 """
 from models import (
     Base,
+    Project,
     LibraryPlateType,
     LibraryWellType,
     LibraryPlate,
@@ -18,7 +19,12 @@ from models import (
     WellMap,
     Batch,
     DropPosition,
-    EchoTransfer
+    EchoTransfer,
+    XrayStatusEnum,
+    PuckType,
+    Puck,
+    Pin,
+    XtalID
 )
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -31,6 +37,10 @@ session = Session()
 
 
 def init_db():
+    # define project
+    project = Project(target="mpro", year=2023, cycle=2, visit=1)
+    session.add(project)
+
     # Creating types
     # Create the library labware (dsip)
     lib_plate_type = LibraryPlateType(name="1536LDV", rows=32, columns=48)
@@ -43,7 +53,8 @@ def init_db():
     ]
 
     lib_well_type_names = [
-        {"name": f"{i}{str(j).zfill(2)}"} for i in a_to_af for j in range(1, 49)]
+        {"name": f"{i}{str(j).zfill(2)}"} for i in a_to_af for j in range(1, 49)
+    ]
 
     for name in lib_well_type_names:
         lib_well_type = LibraryWellType(**name)
@@ -182,6 +193,7 @@ def init_db():
     # populate transfers
     # need to ensure that we go row by row through xtal plate, column
     # by column through library plate to minimize xy motions during transfer
+    # added sequence column to well tables to enforce this ordering
     xtal_well_query = (
         session.query(XtalWell)
         .order_by(XtalWell.sequence)
@@ -196,8 +208,60 @@ def init_db():
 
     for xtal_well, library_well in zip(xtal_well_query, library_well_query):
         transfer = EchoTransfer(
-            batch=batch, from_well=library_well, to_well=xtal_well, transfer_volume=25)
+            batch=batch,
+            from_well=library_well,
+            to_well=xtal_well,
+            transfer_volume=25
+        )
         session.add(transfer)
+
+    # prepare to ingest shifter harvesting csv
+    # make sure there are pucks (and puck_types)
+    puck_names = [{'name': name} for name in ['testpuck', 'FGZ001', 'FGZ002']]
+    session.add_all([PuckType(**puck_name) for puck_name in puck_names])
+
+    harvesting_df = pandas.read_csv("../test/harvesting.csv", skiprows=8)
+    harvesting_df.rename(columns={";PlateType": "PlateType"}, inplace=True)
+
+    puck_types = [{"puck_type": session.query(PuckType).filter_by(name=k).one()}
+                  for k in harvesting_df["DestinationName"].dropna().unique()]
+    pucks = [Puck(**puck_type) for puck_type in puck_types]
+    session.add_all(pucks)
+
+    for index, row in harvesting_df.iterrows():
+        # this entry will be populated if something happened at the well,
+        # successful or not
+        if pandas.notna(row["Comment"]):
+            shifter_well_pos = f"{row['PlateRow']}{row['PlateColumn']}{row['PositionSubWell']}"
+            xtal_well = session.query(XtalWell).filter(
+                XtalWell.plate.has(name=row["PlateID"]),
+                XtalWell.well_type.has(name=shifter_well_pos)
+            ).one()
+            xtal_well.harvest_comment
+            xtal_well.harvesting_status = True
+            xtal_well.time_arrival = pandas.to_datetime(
+                row["TimeArrival"], format='%d/%m/%Y %H:%M:%S'
+            )
+            echo_transfer = session.query(EchoTransfer).filter(
+                EchoTransfer.to_well_id == xtal_well.uid).one()
+            library_well = echo_transfer.from_well
+            library_well.used = True
+
+            # this entry will only be populated if the pin made it into the puck
+            if pandas.notna(row['DestinationLocation']):
+                puck = session.query(Puck).filter(
+                    Puck.puck_type.has(name=row["DestinationName"])
+                ).one()
+                pin = Pin(
+                    xtal_well_source=xtal_well,
+                    puck=puck,
+                    position=row["DestinationLocation"],
+                    time_departure=pandas.to_datetime(
+                        row["TimeDeparture"], format='%d/%m/%Y %H:%M:%S'
+                    )
+                )
+                session.add(pin)
+                xtal_well.pins.append(pin)
 
     session.commit()
 
@@ -210,8 +274,14 @@ def write_echo_csv():
             "Source Well": q.from_well.library_well_type.name,
             "Destination Well": q.to_well.well_type.well_map.echo,
             "Transfer Volume": q.transfer_volume,
-            "Destination Well X offset": q.to_well.drop_position.x_offset + q.to_well.well_type.well_map.well_pos_x,
-            "Destination Well Y offset": q.to_well.drop_position.y_offset + q.to_well.well_type.well_map.well_pos_y
+            "Destination Well X offset": (
+                q.to_well.drop_position.x_offset +
+                q.to_well.well_type.well_map.well_pos_x
+            ),
+            "Destination Well Y offset": (
+                q.to_well.drop_position.y_offset +
+                q.to_well.well_type.well_map.well_pos_y
+            ),
         }
 
         echo_protocol_data.append(row_entry)

@@ -2,6 +2,7 @@ from .base import Base
 import enum
 from sqlalchemy import (
     create_engine,
+    Table,
     Column,
     Integer,
     String,
@@ -9,13 +10,14 @@ from sqlalchemy import (
     Enum,
     Boolean,
     DateTime,
+    CheckConstraint
 )
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base
 import pandas
 from datetime import datetime
 
 
-class XRayStatusEnum(enum.Enum):
+class XrayStatusEnum(enum.Enum):
     not_collected = 1
     collection_succeeded = 2
     collection_failed = 3
@@ -56,4 +58,17 @@ class Pin(Base):
     )  # Xtal well source
     xtal_well_source = relationship("XtalWell", back_populates="pins")
 
-    xray_status = Column(Enum(XRayStatusEnum), nullable=False)
+    xtal_ids = relationship("XtalID", back_populates="pin")
+
+    time_departure = Column(DateTime)  # harvest/freeze time
+
+
+class XtalID(Base):
+    __tablename__ = "xtal_id"
+    uid = Column(Integer, primary_key=True)
+
+    # many-to-one
+    pin_uid = Column(Integer, ForeignKey("pin.uid"))
+    pin = relationship("Pin", back_populates="xtal_ids", uselist=False)
+
+    xray_status = Column(Enum(XrayStatusEnum), nullable=False)

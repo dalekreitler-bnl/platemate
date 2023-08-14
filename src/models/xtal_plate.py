@@ -9,11 +9,14 @@ from sqlalchemy import (
     Enum,
     Boolean,
     Table,
+    DateTime
 )
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base
 import pandas
 
 
+# can be many pins to one xtal well now, in future many-to-many both ways
+# when we develop multiple wells on one pin/mount
 xtal_ptype_wtype_association = Table(
     "xtal_ptype_wtype",
     Base.metadata,
@@ -37,6 +40,14 @@ class XtalPlateType(Base):
     xtal_plates = relationship("XtalPlate", back_populates="plate_type")
     # Metadata
     name = Column(String, nullable=False)
+
+
+pin_xtal_well_association = Table(
+    "pin_xtal_well",
+    Base.metadata,
+    Column("pin_uid", Integer, ForeignKey("pin.uid")),
+    Column("well_uid", Integer, ForeignKey("xtal_well.uid")),
+)
 
 
 class XtalPlate(Base):
@@ -93,11 +104,16 @@ class XtalWell(Base):
     well_type_uid = Column(Integer, ForeignKey("xtal_well_type.uid"))
     well_type = relationship("XtalWellType", back_populates="wells")
 
-    pins = relationship("Pin", back_populates="xtal_well_source")
+    pins = relationship("Pin", secondary=pin_xtal_well_association,
+                        back_populates="xtal_well_source")
 
     # Metadata
     harvesting_status = Column(Boolean, default=False)  # bool
     sequence = Column(Integer, nullable=False)
+
+    # harvesting results
+    time_arrival = Column(DateTime)
+    harvest_comment = Column(String)  # success/fail or other info about result
 
 
 class DropPosition(Base):
