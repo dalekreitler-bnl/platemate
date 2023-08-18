@@ -1,20 +1,9 @@
 from .base import Base
 import enum
-from sqlalchemy import (
-    create_engine,
-    Table,
-    Column,
-    Integer,
-    String,
-    ForeignKey,
-    Enum,
-    Boolean,
-    DateTime,
-    CheckConstraint
-)
-from sqlalchemy.orm import sessionmaker, relationship, declarative_base
-import pandas
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import relationship, mapped_column, Mapped
 from datetime import datetime
+from typing import List, Optional
 
 
 class XrayStatusEnum(enum.Enum):
@@ -25,50 +14,37 @@ class XrayStatusEnum(enum.Enum):
 
 class PuckType(Base):
     __tablename__ = "puck_type"
-    uid = Column(Integer, primary_key=True)
+    uid: Mapped[int] = mapped_column(primary_key=True)
 
     # relationships
-    pucks = relationship("Puck", back_populates="puck_type")
+    pucks: Mapped[List["Puck"]] = relationship("Puck", back_populates="puck_type")
     # Metadata
-    name = Column(String)
+    name: Mapped[Optional[str]]
 
 
 class Puck(Base):
     __tablename__ = "puck"
-    uid = Column(Integer, primary_key=True)
+    uid: Mapped[int] = mapped_column(primary_key=True)
 
-    puck_type_uid = Column(Integer, ForeignKey("puck_type.uid"))
-    puck_type = relationship("PuckType", back_populates="pucks")
+    puck_type_uid: Mapped[int] = mapped_column(ForeignKey("puck_type.uid"))
+    puck_type: Mapped["PuckType"] = relationship(back_populates="pucks")
 
-    pins = relationship("Pin", back_populates="puck")
+    pins: Mapped[List["Pin"]] = relationship(back_populates="puck")
 
-    timestamp = Column(DateTime, default=datetime.now())
+    timestamp: Mapped[datetime] = mapped_column(default=datetime.now())
 
 
 class Pin(Base):
     __tablename__ = "pin"
-    uid = Column(Integer, primary_key=True)
+    uid: Mapped[int] = mapped_column(primary_key=True)
 
-    puck_uid = Column(Integer, ForeignKey("puck.uid"))
-    puck = relationship("Puck", back_populates="pins")
+    puck_uid: Mapped[int] = mapped_column(ForeignKey("puck.uid"))
+    puck: Mapped["Puck"] = relationship(back_populates="pins")
 
-    position = Column(Integer, nullable=False)  # 1 through 16
-    xtal_well_source_id = Column(
-        Integer, ForeignKey("xtal_well.uid")
+    position: Mapped[int]  # 1 through 16
+    xtal_well_source_id: Mapped[int] = mapped_column(
+        ForeignKey("xtal_well.uid")
     )  # Xtal well source
     xtal_well_source = relationship("XtalWell", back_populates="pins")
 
-    xtal_ids = relationship("XtalID", back_populates="pin")
-
-    time_departure = Column(DateTime)  # harvest/freeze time
-
-
-class XtalID(Base):
-    __tablename__ = "xtal_id"
-    uid = Column(Integer, primary_key=True)
-
-    # many-to-one
-    pin_uid = Column(Integer, ForeignKey("pin.uid"))
-    pin = relationship("Pin", back_populates="xtal_ids", uselist=False)
-
-    xray_status = Column(Enum(XrayStatusEnum), nullable=False)
+    time_departure: Mapped[datetime]  # harvest/freeze time

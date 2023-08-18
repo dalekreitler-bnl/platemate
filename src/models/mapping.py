@@ -1,66 +1,57 @@
 from .base import Base
-import enum
-from sqlalchemy import (
-    create_engine,
-    Column,
-    Integer,
-    CheckConstraint,
-    String,
-    ForeignKey,
-    Enum,
-    Boolean,
-    DateTime
-)
+from sqlalchemy import CheckConstraint, ForeignKey
+
 from datetime import datetime
-from sqlalchemy.orm import sessionmaker, relationship, declarative_base
-import pandas
+from .xtal_plate import XtalWellType, XtalWell
+from .library_plate import LibraryWell
+from sqlalchemy.orm import relationship, mapped_column, Mapped
+from typing import List
 
 
 class WellMap(Base):
     __tablename__ = "well_map"
-    uid = Column(Integer, primary_key=True)
+    uid: Mapped[int] = mapped_column(primary_key=True)
 
     # Relationships
     # Each well type has one well map
-    well_types = relationship("XtalWellType", back_populates="well_map")
+    well_types: Mapped[List["XtalWellType"]] = relationship(back_populates="well_map")
 
     # Metadata
-    well_pos_x = Column(Integer, nullable=False)
-    well_pos_y = Column(Integer, nullable=False)
-    echo = Column(String, nullable=False)
-    shifter = Column(String, nullable=False)
+    well_pos_x: Mapped[int]
+    well_pos_y: Mapped[int]
+    echo: Mapped[str]
+    shifter: Mapped[str]
 
 
 class Batch(Base):
     __tablename__ = "batch"
-    uid = Column(Integer, primary_key=True)
+    uid: Mapped[int] = mapped_column(primary_key=True)
 
     # Relationships
-    echo_transfers = relationship("EchoTransfer", back_populates="batch")
+    echo_transfers: Mapped[List["EchoTransfer"]] = relationship(back_populates="batch")
 
     # Metadata, if user forgets to manually update this is our upper bound
-    timestamp = Column(DateTime, default=datetime.now())
+    timestamp: Mapped[datetime] = mapped_column(default=datetime.now())
 
 
 class EchoTransfer(Base):
     __tablename__ = "echo_transfer"
-    uid = Column(Integer, primary_key=True)
+    uid: Mapped[int] = mapped_column(primary_key=True)
 
     # Relationships
-    batch_id = Column(Integer, ForeignKey("batch.uid"), nullable=False)
-    batch = relationship("Batch", back_populates="echo_transfers")
+    batch_id: Mapped[int] = mapped_column(ForeignKey("batch.uid"))
+    batch: Mapped["Batch"] = relationship(back_populates="echo_transfers")
 
-    from_well_id = Column(Integer, ForeignKey("library_well.uid"))
-    from_well = relationship("LibraryWell")
+    from_well_id: Mapped[int] = mapped_column(ForeignKey("library_well.uid"))
+    from_well: Mapped["LibraryWell"] = relationship("LibraryWell")
 
-    to_well_id = Column(Integer, ForeignKey("xtal_well.uid"))
-    to_well = relationship("XtalWell")
+    to_well_id: Mapped[int] = mapped_column(ForeignKey("xtal_well.uid"))
+    to_well: Mapped["XtalWell"] = relationship("XtalWell")
 
-    transfer_volume = Column(
-        Integer,
+    transfer_volume: Mapped[int] = mapped_column(
         CheckConstraint("transfer_volume >= 5 AND transfer_volume <= 150"),
-        nullable=False
+        nullable=False,
     )
 
     # update when the transfer actually occurs
-    timestamp = Column(DateTime, nullable=True)
+    timestamp: Mapped[datetime] = mapped_column(nullable=True)

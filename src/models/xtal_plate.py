@@ -1,18 +1,15 @@
 from .base import Base
 import enum
 from sqlalchemy import (
-    create_engine,
     Column,
     Integer,
-    String,
     ForeignKey,
-    Enum,
-    Boolean,
     Table,
-    DateTime
 )
-from sqlalchemy.orm import sessionmaker, relationship, declarative_base
-import pandas
+from sqlalchemy.orm import relationship, mapped_column, Mapped
+from typing import List, Optional
+from .puck import Pin
+from datetime import datetime
 
 
 # can be many pins to one xtal well now, in future many-to-many both ways
@@ -27,7 +24,7 @@ xtal_ptype_wtype_association = Table(
 
 class XtalPlateType(Base):
     __tablename__ = "xtal_plate_type"
-    uid = Column(Integer, primary_key=True)
+    uid: Mapped[int] = mapped_column(primary_key=True)
 
     # Relationships
     # A xtal plate type can have many well types
@@ -37,9 +34,9 @@ class XtalPlateType(Base):
         back_populates="plate_types",
     )
     # Each xtal plate has one plate type
-    xtal_plates = relationship("XtalPlate", back_populates="plate_type")
+    xtal_plates: Mapped[List["XtalPlate"]] = relationship(back_populates="plate_type")
     # Metadata
-    name = Column(String, nullable=False)
+    name: Mapped[str]
 
 
 pin_xtal_well_association = Table(
@@ -52,74 +49,79 @@ pin_xtal_well_association = Table(
 
 class XtalPlate(Base):
     __tablename__ = "xtal_plate"
-    uid = Column(Integer, primary_key=True)
+    uid: Mapped[int] = mapped_column(primary_key=True)
 
     # Relationships
     # Each xtal plate has one plate type
-    plate_type_id = Column(Integer, ForeignKey("xtal_plate_type.uid"))
-    plate_type = relationship("XtalPlateType", back_populates="xtal_plates")
+    plate_type_id: Mapped[int] = mapped_column(ForeignKey("xtal_plate_type.uid"))
+    plate_type: Mapped["XtalPlateType"] = relationship(back_populates="xtal_plates")
     # Each plate has different wells
-    wells = relationship("XtalWell", back_populates="plate")
+    wells: Mapped["XtalWell"] = relationship(back_populates="plate")
 
     # Metadata
-    name = Column(String, nullable=False)
+    name: Mapped[str]
 
 
 class XtalWellType(Base):
     __tablename__ = "xtal_well_type"
-    uid = Column(Integer, primary_key=True)
+    uid: Mapped[int] = mapped_column(primary_key=True)
 
     # Relationship
     # A xtal plate type can have many well types
-    plate_types = relationship(
-        "XtalPlateType",
+    plate_types: Mapped["XtalPlateType"] = relationship(
         secondary=xtal_ptype_wtype_association,
         back_populates="well_types",
     )
     # Each xtal plate has a shifter to echo mapping
-    well_map_id = Column(Integer, ForeignKey("well_map.uid"))
+    well_map_id: Mapped[int] = mapped_column(ForeignKey("well_map.uid"))
     well_map = relationship("WellMap", back_populates="well_types")
 
     # Each well has a well type
-    wells = relationship("XtalWell", back_populates="well_type")
+    wells: Mapped["XtalWell"] = relationship(back_populates="well_type")
 
     # Metadata
-    name = Column(String, nullable=False)
+    name: Mapped[str]
 
 
 class XtalWell(Base):
     __tablename__ = "xtal_well"
-    uid = Column(Integer, primary_key=True)
+    uid: Mapped[int] = mapped_column(primary_key=True)
 
     # Relationships
     # A drop position can be associated with multiple wells
-    drop_position_uid = Column(Integer, ForeignKey("drop_position.uid"))
-    drop_position = relationship("DropPosition", back_populates="xtal_wells")
+    drop_position_uid: Mapped[int] = mapped_column(
+        ForeignKey("drop_position.uid"), nullable=True
+    )
+    drop_position: Mapped["DropPosition"] = relationship(back_populates="xtal_wells")
 
     # Each plate has a number of wells
-    plate_uid = Column(Integer, ForeignKey("xtal_plate.uid"))
-    plate = relationship("XtalPlate", back_populates="wells")
+    plate_uid: Mapped[int] = mapped_column(ForeignKey("xtal_plate.uid"), nullable=True)
+    plate: Mapped["XtalPlate"] = relationship(back_populates="wells")
 
     # Each well has one well type
-    well_type_uid = Column(Integer, ForeignKey("xtal_well_type.uid"))
+    well_type_uid: Mapped[int] = mapped_column(ForeignKey("xtal_well_type.uid"))
     well_type = relationship("XtalWellType", back_populates="wells")
 
-    pins = relationship("Pin", secondary=pin_xtal_well_association,
-                        back_populates="xtal_well_source")
+    pins: Mapped[List["Pin"]] = relationship(
+        secondary=pin_xtal_well_association, back_populates="xtal_well_source"
+    )
 
     # Metadata
-    harvesting_status = Column(Boolean, default=False)  # bool
-    sequence = Column(Integer, nullable=False)
+    harvesting_status: Mapped[bool] = mapped_column(default=False)
+    sequence: Mapped[int] = mapped_column(nullable=False)
 
     # harvesting results
-    time_arrival = Column(DateTime)
-    harvest_comment = Column(String)  # success/fail or other info about result
+    time_arrival: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    harvest_comment: Mapped[str] = mapped_column(
+        nullable=True
+    )  # success/fail or other info about result
 
 
 class DropPosition(Base):
     __tablename__ = "drop_position"
-    uid = Column(Integer, primary_key=True)
-    name = Column(String)
-    x_offset = Column(Integer)
-    y_offset = Column(Integer)
-    xtal_wells = relationship("XtalWell", back_populates="drop_position")
+    uid: Mapped[int] = mapped_column(primary_key=True)
+
+    name: Mapped[str]
+    x_offset: Mapped[int]
+    y_offset: Mapped[int]
+    xtal_wells: Mapped["XtalWell"] = relationship(back_populates="drop_position")
