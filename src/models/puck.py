@@ -47,8 +47,8 @@ class Pin(Base):
     )  # Xtal well source
     xtal_well_source = relationship("XtalWell", back_populates="pins")
 
-    parent_pin_id: Mapped[int] = mapped_column(ForeignKey("pin.uid"))
-    parent: Mapped["Pin"] = relationship(back_populates="children")
+    parent_pin_id: Mapped[int] = mapped_column(ForeignKey("pin.uid"), nullable=True)
+    parent: Mapped["Pin"] = relationship(back_populates="children", remote_side=[uid])
     children: Mapped[List["Pin"]] = relationship(back_populates="parent")
 
     time_departure: Mapped[datetime]  # harvest/freeze time

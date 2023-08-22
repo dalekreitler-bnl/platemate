@@ -109,7 +109,7 @@ def increment_sequence(mapper, connection, target):
         # Get the current maximum sequence number for the group
         current_max = (
             session.query(LibraryWell.sequence)
-            .filter_by(group_id=target.group_id)
+            .filter_by(plate_uid=target.plate_uid)
             .order_by(LibraryWell.sequence.desc())
             .first()
         )

@@ -57,7 +57,7 @@ class XtalPlate(Base):
     plate_type_id: Mapped[int] = mapped_column(ForeignKey("xtal_plate_type.uid"))
     plate_type: Mapped["XtalPlateType"] = relationship(back_populates="xtal_plates")
     # Each plate has different wells
-    wells: Mapped["XtalWell"] = relationship(back_populates="plate")
+    wells: Mapped[List["XtalWell"]] = relationship(back_populates="plate")
 
     # Metadata
     name: Mapped[str]
@@ -78,7 +78,7 @@ class XtalWellType(Base):
     well_map = relationship("WellMap", back_populates="well_types")
 
     # Each well has a well type
-    wells: Mapped["XtalWell"] = relationship(back_populates="well_type")
+    wells: Mapped[List["XtalWell"]] = relationship(back_populates="well_type")
 
     # Metadata
     name: Mapped[str]
@@ -137,7 +137,7 @@ def increment_sequence(mapper, connection, target):
         # Get the current maximum sequence number for the group
         current_max = (
             session.query(XtalWell.sequence)
-            .filter_by(group_id=target.group_id)
+            .filter_by(plate_uid=target.plate_uid)
             .order_by(XtalWell.sequence.desc())
             .first()
         )

@@ -21,7 +21,7 @@ class Project(Base):
     target: Mapped[str] = mapped_column(nullable=False)
 
     # useful for checking directory tree
-    proposal_id: Mapped[int]
+    proposal_id: Mapped[int] = mapped_column(nullable=True)
     year: Mapped[int]
     cycle: Mapped[int]
     visit: Mapped[int]
