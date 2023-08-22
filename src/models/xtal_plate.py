@@ -6,7 +6,8 @@ from sqlalchemy import (
     ForeignKey,
     Table,
 )
-from sqlalchemy.orm import relationship, mapped_column, Mapped
+from sqlalchemy.orm import relationship, mapped_column, Mapped, Session
+from sqlalchemy.event import listens_for
 from typing import List, Optional
 from .puck import Pin
 from datetime import datetime
@@ -125,3 +126,21 @@ class DropPosition(Base):
     x_offset: Mapped[int]
     y_offset: Mapped[int]
     xtal_wells: Mapped["XtalWell"] = relationship(back_populates="drop_position")
+
+
+@listens_for(XtalWell, "before_insert")
+def increment_sequence(mapper, connection, target):
+    # Retrieve the current session
+    session = Session.object_session(target)
+
+    if session:
+        # Get the current maximum sequence number for the group
+        current_max = (
+            session.query(XtalWell.sequence)
+            .filter_by(group_id=target.group_id)
+            .order_by(XtalWell.sequence.desc())
+            .first()
+        )
+
+        # If there's a current maximum, increment it, otherwise start from 1
+        target.sequence = (current_max[0] + 1) if current_max else 1

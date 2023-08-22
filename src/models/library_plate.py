@@ -5,8 +5,10 @@ from sqlalchemy import (
     ForeignKey,
     Table,
 )
-from sqlalchemy.orm import relationship, mapped_column, Mapped
+from sqlalchemy.orm import relationship, mapped_column, Mapped, Session
+from sqlalchemy.event import listens_for
 from typing import List, Optional
+
 
 lib_ptype_wtype_association = Table(
     "lib_ptype_wtype",
@@ -96,3 +98,21 @@ class LibraryWell(Base):
     smiles: Mapped[str]
 
     sequence: Mapped[int]
+
+
+@listens_for(LibraryWell, "before_insert")
+def increment_sequence(mapper, connection, target):
+    # Retrieve the current session
+    session = Session.object_session(target)
+
+    if session:
+        # Get the current maximum sequence number for the group
+        current_max = (
+            session.query(LibraryWell.sequence)
+            .filter_by(group_id=target.group_id)
+            .order_by(LibraryWell.sequence.desc())
+            .first()
+        )
+
+        # If there's a current maximum, increment it, otherwise start from 1
+        target.sequence = (current_max[0] + 1) if current_max else 1
