@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import NoResultFound
 from pandas import DataFrame
 import pandas as pd
+from pathlib import Path
 
 # if typing.TYPE_CHECKING:
 from models import (
@@ -18,7 +19,11 @@ from models import (
     DropPosition,
     Pin,
     Puck,
+    EchoTransfer,
+    Batch,
 )
+
+# Database related util functions
 
 
 def add_well_type_to_plate_type(
@@ -106,3 +111,64 @@ def transfer_xtal_to_pin(
     )
     session.add(pin)
     xtal_well.pins.append(pin)
+
+
+def create_batch(
+    session: Session,
+    batch_name: str,
+    lib_plate_wells: List[LibraryWell],
+    xtal_plate_wells: List[XtalWell],
+    num_wells: int,
+):
+    batch = Batch(name=batch_name)
+    session.add(batch)
+    transfers = []
+    for source_well, dest_well in zip(
+        lib_plate_wells[:num_wells],
+        xtal_plate_wells[:num_wells],
+    ):
+        transfers.append(
+            EchoTransfer(
+                batch=batch,
+                from_well=source_well,
+                to_well=dest_well,
+                transfer_volume=25,
+            )
+        )
+    session.add_all(transfers)
+    session.commit()
+
+
+# Misc util functions
+
+
+def write_echo_csv(session: Session, batch_id: int, output_filepath: Path):
+    echo_protocol_data = []
+    batch_name = ""
+    for q in session.query(EchoTransfer).filter(EchoTransfer.batch_id == batch_id):
+        batch_name = f"{q.to_well.plate.name}-{q.batch_id}"
+        if not q.to_well.drop_position:
+            q.to_well.drop_position = (
+                session.query(DropPosition).filter_by(name="c").first()
+            )
+            session.add(q)
+        row_entry = {
+            "PlateBatch": batch_name,
+            "Source Well": q.from_well.library_well_type.name,
+            "Destination Well": q.to_well.well_type.well_map.echo,
+            "Transfer Volume": q.transfer_volume,
+            "Destination Well X offset": (
+                q.to_well.drop_position.x_offset
+                + q.to_well.well_type.well_map.well_pos_x
+            ),
+            "Destination Well Y offset": (
+                q.to_well.drop_position.y_offset
+                + q.to_well.well_type.well_map.well_pos_y
+            ),
+        }
+
+        echo_protocol_data.append(row_entry)
+
+    echo_protocol_df = pd.DataFrame(echo_protocol_data)
+
+    echo_protocol_df.to_csv(output_filepath, index=False)

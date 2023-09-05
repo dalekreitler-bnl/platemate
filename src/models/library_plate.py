@@ -91,6 +91,7 @@ class LibraryWell(Base):
     library_well_type: Mapped["LibraryWellType"] = relationship(
         back_populates="library_wells"
     )
+    echo_transfer = relationship("EchoTransfer", back_populates="from_well")
 
     # Relationships
     used: Mapped[bool] = mapped_column(default=False)

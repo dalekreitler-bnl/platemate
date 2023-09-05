@@ -32,6 +32,7 @@ class Batch(Base):
 
     # Metadata, if user forgets to manually update this is our upper bound
     timestamp: Mapped[datetime] = mapped_column(default=datetime.now())
+    name: Mapped[str]
 
 
 class EchoTransfer(Base):

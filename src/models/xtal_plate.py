@@ -101,11 +101,15 @@ class XtalWell(Base):
 
     # Each well has one well type
     well_type_uid: Mapped[int] = mapped_column(ForeignKey("xtal_well_type.uid"))
-    well_type = relationship("XtalWellType", back_populates="wells")
+    well_type: Mapped[XtalWellType] = relationship(
+        "XtalWellType", back_populates="wells"
+    )
 
     pins: Mapped[List["Pin"]] = relationship(
         secondary=pin_xtal_well_association, back_populates="xtal_well_source"
     )
+
+    echo_transfer = relationship("EchoTransfer", back_populates="to_well")
 
     # Metadata
     harvesting_status: Mapped[bool] = mapped_column(default=False)

@@ -35,3 +35,10 @@ class Project(Base):
         CheckConstraint("cycle >= 1 AND cycle <= 3", name="valid_cycle_constraint"),
         CheckConstraint("visit >= 1", name="valid_visit_constraint"),
     )
+
+
+class Status(Base):
+    __tablename__ = "status"
+    uid: Mapped[int] = mapped_column(primary_key=True)
+
+    name: Mapped[str]

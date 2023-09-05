@@ -24,7 +24,6 @@ from models import (
     PuckType,
     Puck,
     Pin,
-    XtalID
 )
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -46,10 +45,38 @@ def init_db():
     lib_plate_type = LibraryPlateType(name="1536LDV", rows=32, columns=48)
 
     a_to_af = [
-        "A", "B", "C", "D", "E", "F", "G", "H", "I", "J",
-        "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T",
-        "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD",
-        "AE", "AF"
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G",
+        "H",
+        "I",
+        "J",
+        "K",
+        "L",
+        "M",
+        "N",
+        "O",
+        "P",
+        "Q",
+        "R",
+        "S",
+        "T",
+        "U",
+        "V",
+        "W",
+        "X",
+        "Y",
+        "Z",
+        "AA",
+        "AB",
+        "AC",
+        "AD",
+        "AE",
+        "AF",
     ]
 
     lib_well_type_names = [
@@ -61,24 +88,25 @@ def init_db():
         session.add(lib_well_type)
         lib_plate_type.well_types.append(lib_well_type)
 
-    lib_plate = LibraryPlate(
-        library_plate_type=lib_plate_type, name="DSI-poised")
+    lib_plate = LibraryPlate(library_plate_type=lib_plate_type, name="DSI-poised")
 
     session.add_all([lib_plate_type, lib_plate])
 
     # fill the library wells, column by column
-    df = pandas.read_csv("~/Documents/dsip.csv")
+    df = pandas.read_csv("../test/dsip.csv")
     sequence = session.query(func.max(LibraryWell.sequence)).scalar() or 0
     for index, row in df.iterrows():
         try:
-            query = session.query(LibraryWellType).filter_by(
-                name=row['well']).one()
+            query = session.query(LibraryWellType).filter_by(name=row["well"]).one()
         except NoResultFound:
-            print("No matching well type found, double check labware")
+            print(f"No matching well type found {row['well']}, double check labware")
 
         lib_well = LibraryWell(
-            plate=lib_plate, library_well_type=query,
-            catalog_id=row['catalog_id'], smiles=row['smiles'], sequence=sequence
+            plate=lib_plate,
+            library_well_type=query,
+            catalog_id=row["catalog_id"],
+            smiles=row["smiles"],
+            sequence=sequence,
         )
         sequence += 1
         session.add(lib_well)
@@ -87,30 +115,40 @@ def init_db():
     xtal_plate_type = XtalPlateType(name="SwissCI-MRC-2d")
     session.add(xtal_plate_type)
 
-    a_to_h = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
-    a_to_p = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-              'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P']
+    a_to_h = ["A", "B", "C", "D", "E", "F", "G", "H"]
+    a_to_p = [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G",
+        "H",
+        "I",
+        "J",
+        "K",
+        "L",
+        "M",
+        "N",
+        "O",
+        "P",
+    ]
 
     echo = [f"{i}{j}" for i in a_to_p for j in range(1, 17)]
-    shifter = [f"{i}{k}{j}" for i in a_to_h for j in ["a", "b"]
-               for k in range(1, 13)]
+    shifter = [f"{i}{k}{j}" for i in a_to_h for j in ["a", "b"] for k in range(1, 13)]
 
-    plate_maps = [
-        {"echo": i, "shifter": j}
-        for i, j in zip(echo, shifter)
-    ]
+    plate_maps = [{"echo": i, "shifter": j} for i, j in zip(echo, shifter)]
 
     for plate_map in plate_maps:
         x_offset = 0
-        if plate_map['shifter'][-1] == 'b':
+        if plate_map["shifter"][-1] == "b":
             y_offset = 1350  # microns
         else:
             y_offset = 0
-        well_map = WellMap(well_pos_x=x_offset,
-                           well_pos_y=y_offset, **plate_map)
+        well_map = WellMap(well_pos_x=x_offset, well_pos_y=y_offset, **plate_map)
         session.add(well_map)
-        xtal_well_type = XtalWellType(
-            name=plate_map['shifter'], well_map=well_map)
+        xtal_well_type = XtalWellType(name=plate_map["shifter"], well_map=well_map)
         session.add(xtal_well_type)
 
     # Create instance of a plate with crystals, update with shifter csv
@@ -121,11 +159,9 @@ def init_db():
     imaging_df.rename(columns={";PlateType": "PlateType"}, inplace=True)
     unique_plate_ids = imaging_df["PlateID"].unique()
     if len(unique_plate_ids) != 1:
-        raise ValueError(
-            "inconsistent plateIDs; plateIDs should all be the same")
+        raise ValueError("inconsistent plateIDs; plateIDs should all be the same")
 
-    xtal_plate = XtalPlate(plate_type=xtal_plate_type,
-                           name=unique_plate_ids[0])
+    xtal_plate = XtalPlate(plate_type=xtal_plate_type, name=unique_plate_ids[0])
     session.add(xtal_plate)
 
     """
@@ -157,33 +193,37 @@ def init_db():
         {"name": "ld", "x_offset": -300, "y_offset": -300},
         {"name": "dr", "x_offset": 300, "y_offset": -300},
         {"name": "rd", "x_offset": 300, "y_offset": -300},
-        {"name": "d", "x_offset": -300, "y_offset": 0}
+        {"name": "d", "x_offset": -300, "y_offset": 0},
     ]
 
-    session.add_all([DropPosition(**drop_position_code)
-                    for drop_position_code in drop_position_codes])
+    session.add_all(
+        [
+            DropPosition(**drop_position_code)
+            for drop_position_code in drop_position_codes
+        ]
+    )
 
     sequence = session.query(func.max(XtalWell.sequence)).scalar() or 0
     for index, row in imaging_df.iterrows():
-        shifter_well_pos = f"{row['PlateRow']}{row['PlateColumn']}{row['PositionSubWell']}"
+        shifter_well_pos = (
+            f"{row['PlateRow']}{row['PlateColumn']}{row['PositionSubWell']}"
+        )
         try:
-            query = session.query(XtalWellType).filter_by(
-                name=shifter_well_pos).one()
+            query = session.query(XtalWellType).filter_by(name=shifter_well_pos).one()
         except NoResultFound:
             print("double check xtal plate labware!")
-        xtal_well = XtalWell(
-            well_type=query, plate=xtal_plate, sequence=sequence)
+        xtal_well = XtalWell(well_type=query, plate=xtal_plate, sequence=sequence)
         sequence += 1
         session.add(xtal_well)
 
         # now update well with drop position
         if pandas.isna(row["ExternalComment"]):
-            drop_position = session.query(
-                DropPosition).filter_by(name="c").one()
+            drop_position = session.query(DropPosition).filter_by(name="c").one()
             xtal_well.drop_position = drop_position
         else:
-            drop_position = session.query(DropPosition).filter_by(
-                name=row["ExternalComment"]).one()
+            drop_position = (
+                session.query(DropPosition).filter_by(name=row["ExternalComment"]).one()
+            )
             xtal_well.drop_position = drop_position
 
     # create a batch
@@ -208,23 +248,22 @@ def init_db():
 
     for xtal_well, library_well in zip(xtal_well_query, library_well_query):
         transfer = EchoTransfer(
-            batch=batch,
-            from_well=library_well,
-            to_well=xtal_well,
-            transfer_volume=25
+            batch=batch, from_well=library_well, to_well=xtal_well, transfer_volume=25
         )
         session.add(transfer)
 
     # prepare to ingest shifter harvesting csv
     # make sure there are pucks (and puck_types)
-    puck_names = [{'name': name} for name in ['testpuck', 'FGZ001', 'FGZ002']]
+    puck_names = [{"name": name} for name in ["testpuck", "FGZ001", "FGZ002"]]
     session.add_all([PuckType(**puck_name) for puck_name in puck_names])
 
     harvesting_df = pandas.read_csv("../test/harvesting.csv", skiprows=8)
     harvesting_df.rename(columns={";PlateType": "PlateType"}, inplace=True)
 
-    puck_types = [{"puck_type": session.query(PuckType).filter_by(name=k).one()}
-                  for k in harvesting_df["DestinationName"].dropna().unique()]
+    puck_types = [
+        {"puck_type": session.query(PuckType).filter_by(name=k).one()}
+        for k in harvesting_df["DestinationName"].dropna().unique()
+    ]
     pucks = [Puck(**puck_type) for puck_type in puck_types]
     session.add_all(pucks)
 
@@ -232,64 +271,50 @@ def init_db():
         # this entry will be populated if something happened at the well,
         # successful or not
         if pandas.notna(row["Comment"]):
-            shifter_well_pos = f"{row['PlateRow']}{row['PlateColumn']}{row['PositionSubWell']}"
-            xtal_well = session.query(XtalWell).filter(
-                XtalWell.plate.has(name=row["PlateID"]),
-                XtalWell.well_type.has(name=shifter_well_pos)
-            ).one()
-            xtal_well.harvest_comment
+            shifter_well_pos = (
+                f"{row['PlateRow']}{row['PlateColumn']}{row['PositionSubWell']}"
+            )
+            print(row)
+            xtal_well = (
+                session.query(XtalWell)
+                .filter(
+                    XtalWell.plate.has(name=row["PlateID"]),
+                    XtalWell.well_type.has(name=shifter_well_pos),
+                )
+                .one()
+            )
+            xtal_well.harvest_comment = row["Comment"]
             xtal_well.harvesting_status = True
             xtal_well.time_arrival = pandas.to_datetime(
-                row["TimeArrival"], format='%d/%m/%Y %H:%M:%S'
+                row["TimeArrival"], format="%d/%m/%Y %H:%M:%S"
             )
-            echo_transfer = session.query(EchoTransfer).filter(
-                EchoTransfer.to_well_id == xtal_well.uid).one()
+            echo_transfer = (
+                session.query(EchoTransfer)
+                .filter(EchoTransfer.to_well_id == xtal_well.uid)
+                .one()
+            )
             library_well = echo_transfer.from_well
             library_well.used = True
 
             # this entry will only be populated if the pin made it into the puck
-            if pandas.notna(row['DestinationLocation']):
-                puck = session.query(Puck).filter(
-                    Puck.puck_type.has(name=row["DestinationName"])
-                ).one()
+            if pandas.notna(row["DestinationLocation"]):
+                puck = (
+                    session.query(Puck)
+                    .filter(Puck.puck_type.has(name=row["DestinationName"]))
+                    .one()
+                )
                 pin = Pin(
                     xtal_well_source=xtal_well,
                     puck=puck,
                     position=row["DestinationLocation"],
                     time_departure=pandas.to_datetime(
-                        row["TimeDeparture"], format='%d/%m/%Y %H:%M:%S'
-                    )
+                        row["TimeDeparture"], format="%d/%m/%Y %H:%M:%S"
+                    ),
                 )
                 session.add(pin)
                 xtal_well.pins.append(pin)
 
     session.commit()
-
-
-def write_echo_csv():
-    echo_protocol_data = []
-    for q in session.query(EchoTransfer).filter(EchoTransfer.batch_id == 1):
-        row_entry = {
-            "PlateBatch": f"{q.to_well.plate.name}-{q.batch_id}",
-            "Source Well": q.from_well.library_well_type.name,
-            "Destination Well": q.to_well.well_type.well_map.echo,
-            "Transfer Volume": q.transfer_volume,
-            "Destination Well X offset": (
-                q.to_well.drop_position.x_offset +
-                q.to_well.well_type.well_map.well_pos_x
-            ),
-            "Destination Well Y offset": (
-                q.to_well.drop_position.y_offset +
-                q.to_well.well_type.well_map.well_pos_y
-            ),
-        }
-
-        echo_protocol_data.append(row_entry)
-
-    echo_protocol_df = pandas.DataFrame(echo_protocol_data)
-    echo_protocol_df.to_csv(
-        f"../test/echo_protocol_{echo_protocol_df['PlateBatch'][1]}.csv",
-        index=False)
 
 
 if __name__ == "__main__":
