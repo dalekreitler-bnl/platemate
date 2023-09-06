@@ -24,7 +24,7 @@ import pandas as pd
 import io
 
 
-class IngestHarvestingData:
+class IngestHarvestingDataWidget:
     def __init__(self, session: Session):
         self.session = session
 

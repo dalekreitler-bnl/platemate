@@ -2,7 +2,7 @@ from ipywidgets import (
     Tab,
     SelectMultiple,
     Accordion,
-    ToggleButton,
+    Checkbox,
     VBox,
     HBox,
     HTML,
@@ -29,6 +29,7 @@ from utils.read import (
     get_latest_batch,
     get_xtal_plate_model,
     get_instance,
+    get_all_projects,
 )
 
 
@@ -59,6 +60,16 @@ class EchoTransferWidget:
         )
         # Add call back to xtal_plates
         self.xtal_plates.observe(self.xtal_plate_callback)
+        self.projects = {
+            proj.target: proj for proj in get_all_projects(session=self.session)
+        }
+        self.project_dropdown = Dropdown(
+            options=self.projects.keys(),
+            description="Project:",
+            disabled=False,
+            style=dict(description_width="initial"),
+        )
+
         self.xtal_wells_used_slider = IntSlider(
             value=0,
             min=0,
@@ -95,14 +106,31 @@ class EchoTransferWidget:
         )
         self.batch_num.observe(self.batch_num_changed, "value")
 
+        self.solvent_check_box = Checkbox(
+            value=False,
+            description="Solvent Library Plate",
+            disabled=False,
+            indent=False,
+        )
+
         self.widget_row1 = HBox(
-            [self.lib_plates, self.xtal_plates, self.xtal_wells_used_slider]
+            [self.lib_plates, self.xtal_plates, self.project_dropdown]
         )
         self.widget_row2 = HBox(
+            [
+                self.xtal_wells_used_slider,
+            ]
+        )
+        self.widget_row3 = HBox(
             [self.path_text_box, self.batch_name_text_box, self.batch_num]
         )
         self.vbox = VBox(
-            [self.widget_row1, self.widget_row2, self.generate_echo_transfer_button]
+            [
+                self.widget_row1,
+                self.widget_row2,
+                self.widget_row3,
+                self.generate_echo_transfer_button,
+            ]
         )
         # Executing call backs when the UI is initialized
         self.lib_plate_callback({"new": lib_plates[0]})
@@ -122,24 +150,36 @@ class EchoTransferWidget:
             batch_name = str(self.batch_name_text_box.value)
             if not batch_name:
                 batch_name = f"Batch {self.batch_num.value}"
+            if self.solvent_check_box.value:
+                # If the solvent check box is checked, we make a hard assumption
+                # that the first well in the lib plate is assumed to be transferred
+                # to all xtal wells
+                self.lib_plate_wells = [
+                    self.lib_plate_wells[0] for i in range(len(self.xtal_plate_wells))
+                ]
             create_batch(
                 self.session,
                 batch_name,
                 self.lib_plate_wells,
                 self.xtal_plate_wells,
                 self.xtal_wells_used_slider.value,
+                self.projects[self.project_dropdown.value],
             )
         write_echo_csv(self.session, self.batch_num.value, self.path_text_box.value)
         self.lib_plate_callback({"new": self.lib_plates.value})
         self.xtal_plate_callback({"new": self.xtal_plates.value})
 
     def set_widget_values(self):
-        self.xtal_wells_used_slider.max = min(
-            len(self.xtal_plate_wells), len(self.lib_plate_wells)
-        )
-        self.xtal_wells_used_slider.value = min(
-            len(self.xtal_plate_wells), len(self.lib_plate_wells)
-        )
+        if self.solvent_check_box.value == False:
+            self.xtal_wells_used_slider.max = min(
+                len(self.xtal_plate_wells), len(self.lib_plate_wells)
+            )
+            self.xtal_wells_used_slider.value = min(
+                len(self.xtal_plate_wells), len(self.lib_plate_wells)
+            )
+        else:
+            self.xtal_wells_used_slider.max = len(self.xtal_plate_wells)
+            self.xtal_wells_used_slider.value = len(self.xtal_plate_wells)
         batch_id = get_latest_batch(self.session) + 1
         self.batch_num.value = batch_id
         self.update_path()

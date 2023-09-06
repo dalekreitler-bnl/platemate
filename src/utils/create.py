@@ -21,6 +21,7 @@ from models import (
     Puck,
     EchoTransfer,
     Batch,
+    Project,
 )
 
 # Database related util functions
@@ -119,8 +120,9 @@ def create_batch(
     lib_plate_wells: List[LibraryWell],
     xtal_plate_wells: List[XtalWell],
     num_wells: int,
+    project: Project,
 ):
-    batch = Batch(name=batch_name)
+    batch = Batch(name=batch_name, project=project)
     session.add(batch)
     transfers = []
     for source_well, dest_well in zip(
@@ -172,3 +174,61 @@ def write_echo_csv(session: Session, batch_id: int, output_filepath: Path):
     echo_protocol_df = pd.DataFrame(echo_protocol_data)
 
     echo_protocol_df.to_csv(output_filepath, index=False)
+
+
+def write_harvest_file(session: Session, batch: Batch, output_filepath: Path):
+    # batch = session.query(Batch).filter(Batch.uid == batch_id).one()
+    csv_rows = []
+    for echo_transfer in batch.echo_transfers:
+        row_name = echo_transfer.to_well.well_type.name
+        plate_row = row_name[0]
+        plate_col = row_name[1:-1]
+        plate_subwell = row_name[-1]
+        row_entry = {
+            ";PlateType": echo_transfer.to_well.plate.plate_type.name,
+            "PlateID": echo_transfer.to_well.plate.name,
+            "LocationShifter": "AM",
+            "PlateRow": plate_row,
+            "PlateColumn": plate_col,
+            "PositionSubWell": plate_subwell,
+            "Comment": "",
+            "CrystalID": "",
+            "TimeArrival": "",
+            "TimeDeparture": "",
+            "DestinationName": "",
+            "DestinationLocation": "",
+            "Barcode": "",
+            "ExternalComment": "",
+            "CrystalScore": "",
+            "BeamlineProteinID": "",
+            "BeamlineDewarID": "",
+            "BeamlineContainerID": "",
+            "BeamlineShipmentID": "",
+            "BeamlineProposalID": "",
+            "BeamlineID": "",
+            "BeamlineUploadDate": "",
+            "PickDuration": "",
+        }
+        csv_rows.append(row_entry)
+
+    harvest_df = DataFrame.from_dict(csv_rows)
+    harvest_df.to_csv(output_filepath, index=False)
+
+
+def write_lsdc_puck_data(session: Session, batch: Batch, filename: str):
+    data_rows = []
+    for echo_transfer in batch.echo_transfers:
+        pins = echo_transfer.to_well.pins
+        for pin in pins:
+            row = {
+                "puckName": pin.puck.puck_type.name,
+                "position": pin.position,
+                "sampleName": f"{batch.project.target}_{pin.uid}",
+                "model": "",
+                "sequence": "",
+                "proposalNum": pin.puck.proposal_id,
+            }
+            data_rows.append(row)
+
+    lsdc_excel_df = DataFrame.from_dict(data_rows)
+    lsdc_excel_df.to_excel(filename)

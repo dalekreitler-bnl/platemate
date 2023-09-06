@@ -27,7 +27,7 @@ import io
 import pandas as pd
 
 
-class XtalPlateCreator:
+class XtalPlateCreatorWidget:
     def __init__(self, session: Session):
         self.session = session
         self._init_ui()
@@ -80,6 +80,7 @@ class XtalPlateCreator:
                 )
                 self.session.add(xtal_plate)
                 add_xtal_wells_to_plate(self.session, self.df, xtal_plate)
+                self.session.commit()
             except Exception as e:
                 with self.output_widget:
                     print(f"Exception while reading file: {e}")

@@ -26,7 +26,7 @@ from utils.read import get_all_batches
 from datetime import datetime
 
 
-class BatchTimeStamp:
+class BatchTimeStampWidget:
     def __init__(self, session: Session):
         self.session = session
         self._init_ui()

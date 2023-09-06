@@ -17,6 +17,7 @@ from models import (
     XtalWell,
     XtalWellType,
     DropPosition,
+    Project,
     Pin,
     Puck,
     Batch,
@@ -107,6 +108,10 @@ def get_latest_batch(session: Session) -> int:
         return 0
     else:
         return num_batches
+
+
+def get_all_projects(session: Session):
+    return session.query(Project).all()
 
 
 def get_instance(session, model, **kwargs):

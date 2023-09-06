@@ -32,6 +32,7 @@ class Puck(Base):
     pins: Mapped[List["Pin"]] = relationship(back_populates="puck")
 
     timestamp: Mapped[datetime] = mapped_column(default=datetime.now())
+    proposal_id: Mapped[int]
 
 
 class Pin(Base):
@@ -52,3 +53,5 @@ class Pin(Base):
     children: Mapped[List["Pin"]] = relationship(back_populates="parent")
 
     time_departure: Mapped[datetime]  # harvest/freeze time
+
+    lsdc_sample_name: Mapped[str]

@@ -10,12 +10,14 @@ from .base import Base
 from sqlalchemy import CheckConstraint
 
 from datetime import datetime
-from sqlalchemy.orm import mapped_column, Mapped
+from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 
 class Project(Base):
     __tablename__ = "project"
     uid: Mapped[int] = mapped_column(primary_key=True)
+
+    batches = relationship("Batch", back_populates="project")
 
     # used for xtal naming
     target: Mapped[str] = mapped_column(nullable=False)

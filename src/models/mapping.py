@@ -4,6 +4,7 @@ from sqlalchemy import CheckConstraint, ForeignKey
 from datetime import datetime
 from .xtal_plate import XtalWellType, XtalWell
 from .library_plate import LibraryWell
+from .project import Project
 from sqlalchemy.orm import relationship, mapped_column, Mapped
 from typing import List
 
@@ -29,6 +30,8 @@ class Batch(Base):
 
     # Relationships
     echo_transfers: Mapped[List["EchoTransfer"]] = relationship(back_populates="batch")
+    project_id: Mapped[int] = mapped_column(ForeignKey("project.uid"))
+    project: Mapped[Project] = relationship(back_populates="batches")
 
     # Metadata, if user forgets to manually update this is our upper bound
     timestamp: Mapped[datetime] = mapped_column(default=datetime.now())
