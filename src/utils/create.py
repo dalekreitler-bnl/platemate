@@ -121,20 +121,28 @@ def create_batch(
     xtal_plate_wells: List[XtalWell],
     num_wells: int,
     project: Project,
+    transfer_volumes=25,
 ):
+    if not isinstance(transfer_volumes, list):
+        # If transfer volumes is not a list, then create a list using
+        # The value supplied
+        transfer_volumes = [transfer_volumes for i in range(num_wells)]
     batch = Batch(name=batch_name, project=project)
     session.add(batch)
     transfers = []
-    for source_well, dest_well in zip(
-        lib_plate_wells[:num_wells],
-        xtal_plate_wells[:num_wells],
+    print(len(transfer_volumes), num_wells)
+    for i, (source_well, dest_well) in enumerate(
+        zip(
+            lib_plate_wells[:num_wells],
+            xtal_plate_wells[:num_wells],
+        )
     ):
         transfers.append(
             EchoTransfer(
                 batch=batch,
                 from_well=source_well,
                 to_well=dest_well,
-                transfer_volume=25,
+                transfer_volume=transfer_volumes[i],
             )
         )
     session.add_all(transfers)

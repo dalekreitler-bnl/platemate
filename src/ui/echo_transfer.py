@@ -1,7 +1,7 @@
 from ipywidgets import (
     Tab,
     SelectMultiple,
-    Accordion,
+    FloatText,
     Checkbox,
     VBox,
     HBox,
@@ -12,11 +12,13 @@ from ipywidgets import (
     Dropdown,
     IntSlider,
     Text,
+    Output,
 )
 from pathlib import Path
 from sqlalchemy.orm import Session
 
 from typing import List
+import numpy as np
 
 from models import LibraryWell, XtalWell, Batch
 from utils.create import write_echo_csv, create_batch
@@ -31,6 +33,7 @@ from utils.read import (
     get_instance,
     get_all_projects,
 )
+from utils.general import generate_array
 
 
 class EchoTransferWidget:
@@ -41,6 +44,7 @@ class EchoTransferWidget:
         self._init_ui()
 
     def _init_ui(self):
+        self.output = Output()
         lib_plates = get_all_lib_plate_names(self.session)
         self.lib_plates = Dropdown(
             options=lib_plates,
@@ -112,29 +116,112 @@ class EchoTransferWidget:
             disabled=False,
             indent=False,
         )
+        self.solvent_check_box.observe(self.solvent_box_changed, "value")
+        self.solvent_check_box.observe(self.solvent_data_changed, "value")
+
+        custom_layout = Layout(width="200px", description_width="50px")
+        self.start_gradient_text_box = FloatText(
+            value=5, description="Start:", disabled=True, layout=custom_layout
+        )
+        self.start_gradient_text_box.observe(self.solvent_data_changed, "value")
+
+        self.end_gradient_text_box = FloatText(
+            value=20, description="End:", disabled=True, layout=custom_layout
+        )
+        self.end_gradient_text_box.observe(self.solvent_data_changed, "value")
+
+        self.step_gradient_text_box = FloatText(
+            value=1, description="Step:", disabled=True, layout=custom_layout
+        )
+        self.step_gradient_text_box.observe(self.solvent_data_changed, "value")
+
+        self.replicates_text_box = IntText(
+            value=1,
+            description="Replicates:",
+            disabled=True,
+            layout=custom_layout,
+        )
+        self.replicates_text_box.observe(self.solvent_data_changed, "value")
 
         self.widget_row1 = HBox(
             [self.lib_plates, self.xtal_plates, self.project_dropdown]
         )
         self.widget_row2 = HBox(
-            [
-                self.xtal_wells_used_slider,
-            ]
+            [self.xtal_wells_used_slider, self.batch_name_text_box, self.batch_num]
         )
         self.widget_row3 = HBox(
-            [self.path_text_box, self.batch_name_text_box, self.batch_num]
+            [
+                self.solvent_check_box,
+                self.start_gradient_text_box,
+                self.end_gradient_text_box,
+                self.step_gradient_text_box,
+                self.replicates_text_box,
+            ]
+        )
+        self.widget_row4 = HBox(
+            [
+                self.path_text_box,
+                self.generate_echo_transfer_button,
+            ]
         )
         self.vbox = VBox(
             [
                 self.widget_row1,
                 self.widget_row2,
                 self.widget_row3,
-                self.generate_echo_transfer_button,
+                self.widget_row4,
+                self.output,
             ]
         )
         # Executing call backs when the UI is initialized
-        self.lib_plate_callback({"new": lib_plates[0]})
-        self.xtal_plate_callback({"new": xtal_plates[0]})
+        if lib_plates:
+            self.lib_plate_callback({"new": lib_plates[0]})
+        if xtal_plates:
+            self.xtal_plate_callback({"new": xtal_plates[0]})
+        if not lib_plates or not xtal_plates:
+            self.generate_echo_transfer_button.disabled = True
+            with self.output:
+                print(
+                    "No Xtal plate or Library plate in the database, cannot create a batch"
+                )
+
+    def solvent_box_changed(self, state):
+        value = state["new"]
+
+        for text_box in [
+            self.start_gradient_text_box,
+            self.end_gradient_text_box,
+            self.step_gradient_text_box,
+            self.replicates_text_box,
+        ]:
+            text_box.disabled = not value
+        self.xtal_wells_used_slider.disabled = value
+
+    def solvent_data_changed(self, state):
+        start = self.start_gradient_text_box.value
+        stop = self.end_gradient_text_box.value
+        step = self.step_gradient_text_box.value
+        replicates = self.replicates_text_box.value
+
+        self.possible_volumes = generate_array(start, stop, step, replicates)
+        if len(self.possible_volumes) > int(self.xtal_wells_used_slider.max):
+            self.sufficient_wells = False
+        else:
+            self.sufficient_wells = True
+
+        if isinstance(state["new"], bool) and state["new"] == False:
+            message = ""
+        elif self.sufficient_wells:
+            message = "Ready to generate mapping"
+        else:
+            message = (
+                f"Not enough xtal wells available on this plate."
+                f"Wells required: {len(self.possible_volumes)}."
+                f"Wells available: {self.xtal_wells_used_slider.max}"
+            )
+        with self.output:
+            self.output.clear_output()
+            print(message)
 
     def batch_num_changed(self, state):
         value = state["new"]
@@ -145,29 +232,54 @@ class EchoTransferWidget:
         self.update_batch_name(max_batch)
 
     def echo_transfer_button_triggered(self, state):
-        print("Echo transfer triggered")
-        if self.batch_num.value > get_latest_batch(self.session):
-            batch_name = str(self.batch_name_text_box.value)
-            if not batch_name:
-                batch_name = f"Batch {self.batch_num.value}"
-            if self.solvent_check_box.value:
-                # If the solvent check box is checked, we make a hard assumption
-                # that the first well in the lib plate is assumed to be transferred
-                # to all xtal wells
-                self.lib_plate_wells = [
-                    self.lib_plate_wells[0] for i in range(len(self.xtal_plate_wells))
-                ]
-            create_batch(
-                self.session,
-                batch_name,
-                self.lib_plate_wells,
-                self.xtal_plate_wells,
-                self.xtal_wells_used_slider.value,
-                self.projects[self.project_dropdown.value],
-            )
-        write_echo_csv(self.session, self.batch_num.value, self.path_text_box.value)
-        self.lib_plate_callback({"new": self.lib_plates.value})
-        self.xtal_plate_callback({"new": self.xtal_plates.value})
+        try:
+            with self.output:
+                print("Echo transfer triggered")
+                if self.batch_num.value > get_latest_batch(self.session):
+                    transfer_volumes = 25
+                    batch_name = str(self.batch_name_text_box.value)
+                    if not batch_name:
+                        batch_name = f"Batch {self.batch_num.value}"
+                    if self.solvent_check_box.value:
+                        # If the solvent check box is checked, we make a hard assumption
+                        # that the first well in the lib plate is assumed to be transferred
+                        # to all xtal wells
+                        selected_plate = get_lib_plate_model(
+                            self.session, self.lib_plates.value
+                        )
+                        all_lib_plate_wells = get_unused_lib_plate_wells(
+                            self.session, selected_plate
+                        )
+                        self.lib_plate_wells = [
+                            all_lib_plate_wells[0]
+                            for i in range(len(self.xtal_plate_wells))
+                        ]
+                        if not self.sufficient_wells:
+                            with self.output:
+                                self.output.clear_output()
+                                print("Insufficient wells, cannot create mapping")
+                            return
+                        transfer_volumes = self.possible_volumes
+                        self.xtal_wells_used_slider.value = len(self.possible_volumes)
+                    create_batch(
+                        self.session,
+                        batch_name,
+                        self.lib_plate_wells,
+                        self.xtal_plate_wells,
+                        self.xtal_wells_used_slider.value,
+                        self.projects[self.project_dropdown.value],
+                        transfer_volumes,
+                    )
+                write_echo_csv(
+                    self.session, self.batch_num.value, self.path_text_box.value
+                )
+                self.lib_plate_callback({"new": self.lib_plates.value})
+                self.xtal_plate_callback({"new": self.xtal_plates.value})
+        except Exception as e:
+            with self.output:
+                self.output.clear_output()
+                print(f"Exception occured: {e}")
+                self.session.rollback()
 
     def set_widget_values(self):
         if self.solvent_check_box.value == False:

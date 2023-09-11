@@ -37,22 +37,22 @@ def get_lib_plate_model(session: Session, name: str) -> LibraryPlate | None:
 
 
 def get_unused_lib_plate_wells(
-    session: Session, plate: LibraryPlate
+    session: Session, plate: LibraryPlate, include_used=False
 ) -> List[LibraryWell]:
     """
     Returns lib plate wells that are not used and not
     part of any echo transfers, for a particular library plate
     """
-    return (
-        session.query(LibraryWell)
-        .filter(
+    query = session.query(LibraryWell).filter(
+        LibraryWell.plate_uid == plate.uid,
+    )
+    if not include_used:
+        query = query.filter(
             LibraryWell.used == False,
-            LibraryWell.plate_uid == plate.uid,
             LibraryWell.echo_transfer == None,
         )
-        .order_by(LibraryWell.sequence)
-        .all()
-    )
+
+    return query.order_by(LibraryWell.sequence).all()
 
 
 # Xtal plate functions
