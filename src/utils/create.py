@@ -50,7 +50,15 @@ def add_lib_well_to_plate(
     for index, row in df.iterrows():
         query = None
         try:
-            query = session.query(LibraryWellType).filter_by(name=row["well"]).one()
+            query = (
+                session.query(LibraryWellType)
+                .join(LibraryPlateType.well_types)
+                .filter(
+                    LibraryPlateType.uid == lib_plate.uid,
+                    LibraryWellType.name == row["well"],
+                )
+                .one()
+            )
         except NoResultFound:
             print(f"No matching well type found {row['well']}, double check labware")
 
