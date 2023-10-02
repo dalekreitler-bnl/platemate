@@ -21,7 +21,7 @@ from models import (
     Puck,
     EchoTransfer,
     Batch,
-    Project,
+    Project
 )
 
 # Database related util functions
@@ -47,6 +47,7 @@ def add_lib_well_to_plate(
     """
     Adds a library well to a library plate
     """
+    
     for index, row in df.iterrows():
         query = None
         try:
@@ -54,7 +55,7 @@ def add_lib_well_to_plate(
                 session.query(LibraryWellType)
                 .join(LibraryPlateType.well_types)
                 .filter(
-                    LibraryPlateType.uid == lib_plate.uid,
+                    LibraryPlateType.uid == lib_plate.library_plate_type_uid,
                     LibraryWellType.name == row["well"],
                 )
                 .one()
