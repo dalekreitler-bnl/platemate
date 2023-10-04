@@ -52,7 +52,7 @@ class IngestHarvestingDataWidget:
             [self.widget_row, self.import_harvesting_file_button, self.output_widget]
         )
 
-    def import_harvest_file(self):
+    def import_harvest_file(self, value):
         self.df = None
         if self.harvesting_file_upload.value:
             try:
