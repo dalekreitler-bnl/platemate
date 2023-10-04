@@ -56,7 +56,7 @@ class IngestHarvestingDataWidget:
 
         self.vbox = VBox([self.widget_row, self.import_harvesting_file_button])
 
-    def import_harvest_file(self):
+    def import_harvest_file(self, value):
         self.df = None
         if self.harvesting_file_upload.value:
             try:
