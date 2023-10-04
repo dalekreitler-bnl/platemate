@@ -19,9 +19,10 @@ from sqlalchemy.orm import Session
 from typing import List
 from models import PuckType, EchoTransfer
 from utils.read import get_xtal_well
-from utils.create import transfer_xtal_to_pin
+from utils.create import transfer_xtal_to_pin, make_pucks
 import pandas as pd
 import io
+import traceback
 
 
 class IngestHarvestingDataWidget:
@@ -59,6 +60,12 @@ class IngestHarvestingDataWidget:
                 uploaded_file = self.harvesting_file_upload.value[0]  # type: ignore
                 self.df = pd.read_csv(io.BytesIO(uploaded_file.content), skiprows=8)
                 self.df.rename(columns={";PlateType": "PlateType"}, inplace=True)
+                puck_names = self.df["DestinationName"].unique()
+                puck_references = make_pucks(
+                    self.session,
+                    puck_names=list(puck_names),
+                    output_widget=self.output_widget,
+                )
                 for index, row in self.df.iterrows():
                     # this entry will be populated if something happened at the well,
                     # successful or not
@@ -89,11 +96,13 @@ class IngestHarvestingDataWidget:
                                 row["DestinationName"],
                                 row["DestinationLocation"],
                                 row["TimeDeparture"],
+                                puck_references,
                             )
                 with self.output_widget:
                     print("Successfully ingested harvesting data")
             except Exception as e:
                 with self.output_widget:
+                    traceback.print_exc()
                     print(f"Exception while reading file: {e}")
 
     @property

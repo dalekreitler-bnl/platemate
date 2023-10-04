@@ -19,6 +19,7 @@ from models import (
     DropPosition,
     Pin,
     Puck,
+    PuckType,
     EchoTransfer,
     Batch,
     Project,
@@ -111,11 +112,12 @@ def transfer_xtal_to_pin(
     destination_puck: str,
     pin_location: int,
     departure_time: str,
+    puck_references: Dict[str, Puck],
 ):
-    puck = session.query(Puck).filter(Puck.puck_type.has(name=destination_puck)).one()
+    # puck = session.query(Puck).filter(Puck.puck_type.has(name=destination_puck)).one()
     pin = Pin(
         xtal_well_source=xtal_well,
-        puck=puck,
+        puck=puck_references[destination_puck],
         position=pin_location,
         time_departure=pd.to_datetime(departure_time, format="%d/%m/%Y %H:%M:%S"),
     )
@@ -249,3 +251,15 @@ def write_lsdc_puck_data(session: Session, batch: Batch, filename: str):
 
     lsdc_excel_df = DataFrame.from_dict(data_rows)
     lsdc_excel_df.to_excel(filename)
+
+
+def make_pucks(session: Session, puck_names: List[str], output_widget):
+    with output_widget:
+        print(puck_names)
+    puck_references = {}
+    for puck_name in puck_names:
+        puck_type = session.query(PuckType).filter_by(name=puck_name).first()
+        if puck_type:
+            puck_references[puck_name] = Puck(puck_type=puck_type, proposal_id=1)
+            session.commit()
+    return puck_references

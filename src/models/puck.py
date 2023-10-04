@@ -54,4 +54,4 @@ class Pin(Base):
 
     time_departure: Mapped[datetime]  # harvest/freeze time
 
-    lsdc_sample_name: Mapped[str]
+    lsdc_sample_name: Mapped[Optional[str]]
