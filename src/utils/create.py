@@ -212,6 +212,7 @@ def write_harvest_file(session: Session, batch: Batch, output_filepath: Path):
             "CrystalID": "",
             "TimeArrival": "",
             "TimeDeparture": "",
+            "PickDuration": "",
             "DestinationName": "",
             "DestinationLocation": "",
             "Barcode": "",
@@ -224,7 +225,7 @@ def write_harvest_file(session: Session, batch: Batch, output_filepath: Path):
             "BeamlineProposalID": "",
             "BeamlineID": "",
             "BeamlineUploadDate": "",
-            "PickDuration": "",
+            
         }
         csv_rows.append(row_entry)
 
