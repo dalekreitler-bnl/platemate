@@ -41,26 +41,22 @@ class IngestHarvestingDataWidget:
         self.puck_data = {
             puck.name: puck for puck in self.session.query(PuckType).all()
         }
-        self.puck_select_dropdown = Dropdown(
-            options=self.puck_data.keys(),
-            description="Puck Type:",
-            disabled=False,
-            style=dict(description_width="initial"),
-        )
         self.import_harvesting_file_button = Button(
             description="Import Harvest Data", layout=Layout(width="200px")
         )
         self.import_harvesting_file_button.on_click(self.import_harvest_file)
 
-        self.widget_row = HBox([self.harvesting_file_upload, self.puck_select_dropdown])
+        self.widget_row = HBox([self.harvesting_file_upload])
 
-        self.vbox = VBox([self.widget_row, self.import_harvesting_file_button])
+        self.vbox = VBox(
+            [self.widget_row, self.import_harvesting_file_button, self.output_widget]
+        )
 
     def import_harvest_file(self):
         self.df = None
         if self.harvesting_file_upload.value:
             try:
-                uploaded_file = self.harvesting_file_upload.value[0]
+                uploaded_file = self.harvesting_file_upload.value[0]  # type: ignore
                 self.df = pd.read_csv(io.BytesIO(uploaded_file.content), skiprows=8)
                 self.df.rename(columns={";PlateType": "PlateType"}, inplace=True)
                 for index, row in self.df.iterrows():
@@ -94,6 +90,8 @@ class IngestHarvestingDataWidget:
                                 row["DestinationLocation"],
                                 row["TimeDeparture"],
                             )
+                with self.output_widget:
+                    print("Successfully ingested harvesting data")
             except Exception as e:
                 with self.output_widget:
                     print(f"Exception while reading file: {e}")

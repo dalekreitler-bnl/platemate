@@ -81,6 +81,8 @@ class XtalPlateCreatorWidget:
                 self.session.add(xtal_plate)
                 add_xtal_wells_to_plate(self.session, self.df, xtal_plate)
                 self.session.commit()
+                with self.output_widget:
+                    print("Successfully uploaded imaging file")
             except Exception as e:
                 with self.output_widget:
                     print(f"Exception while reading file: {e}")

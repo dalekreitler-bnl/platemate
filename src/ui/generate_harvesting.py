@@ -23,7 +23,8 @@ from models import LibraryWell, XtalWell, Batch
 
 
 class GenerateHarvestDataWidget:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, output_folder: Path):
+        self.output_folder = output_folder
         self.session = session
         self._init_ui()
 
@@ -66,7 +67,7 @@ class GenerateHarvestDataWidget:
             path = f"harvesting_{batch.uid}_{batch.name}.csv"
         else:
             path = "harvesting_0.csv"
-        self.path_text_box.value = path
+        self.path_text_box.value = str(self.output_folder / Path(path))
 
     def generate_harvest_file(self, state):
         try:
@@ -75,6 +76,10 @@ class GenerateHarvestDataWidget:
                 self.all_batches[self.batch_dropdown.value],
                 self.path_text_box.value,
             )
+            with self.output_widget:
+                print(
+                    f"Successfully generated harvest file at {self.path_text_box.value}"
+                )
         except Exception as e:
             with self.output_widget:
                 print(f"Exception while creating harvest file: {e}")

@@ -21,7 +21,7 @@ from models import (
     Puck,
     EchoTransfer,
     Batch,
-    Project
+    Project,
 )
 
 # Database related util functions
@@ -47,7 +47,7 @@ def add_lib_well_to_plate(
     """
     Adds a library well to a library plate
     """
-    
+
     for index, row in df.iterrows():
         query = None
         try:
@@ -216,7 +216,7 @@ def write_harvest_file(session: Session, batch: Batch, output_filepath: Path):
             "DestinationLocation": "",
             "Barcode": "",
             "ExternalComment": "",
-            "CrystalScore": "",
+            "CrystalScore": "0",
             "BeamlineProteinID": "",
             "BeamlineDewarID": "",
             "BeamlineContainerID": "",

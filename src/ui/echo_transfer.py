@@ -37,8 +37,9 @@ from utils.general import generate_array
 
 
 class EchoTransferWidget:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, output_folder: Path):
         self.session = session
+        self.output_folder = output_folder
         self.lib_plate_wells: List[LibraryWell] = []
         self.xtal_plate_wells: List[XtalWell] = []
         self._init_ui()
@@ -53,7 +54,7 @@ class EchoTransferWidget:
             style=dict(description_width="initial"),
         )
         # Add call back to lib_plates
-        self.lib_plates.observe(self.lib_plate_callback)
+        self.lib_plates.observe(self.lib_plate_callback, "value")
 
         xtal_plates = get_all_xtal_plate_names(self.session)
         self.xtal_plates = Dropdown(
@@ -63,7 +64,7 @@ class EchoTransferWidget:
             style=dict(description_width="initial"),
         )
         # Add call back to xtal_plates
-        self.xtal_plates.observe(self.xtal_plate_callback)
+        self.xtal_plates.observe(self.xtal_plate_callback, "value")
         self.projects = {
             proj.target: proj for proj in get_all_projects(session=self.session)
         }
@@ -119,14 +120,22 @@ class EchoTransferWidget:
         self.solvent_check_box.observe(self.solvent_box_changed, "value")
         self.solvent_check_box.observe(self.solvent_data_changed, "value")
 
-        custom_layout = Layout(width="200px", description_width="50px")
+        custom_layout = Layout(width="200px", description_width="initial")
         self.start_gradient_text_box = FloatText(
-            value=5, description="Start:", disabled=True, layout=custom_layout
+            value=5,
+            description="Start Vol (nL):",
+            disabled=True,
+            layout=custom_layout,
+            min=5,
+            max=150,
         )
         self.start_gradient_text_box.observe(self.solvent_data_changed, "value")
 
         self.end_gradient_text_box = FloatText(
-            value=20, description="End:", disabled=True, layout=custom_layout
+            value=20,
+            description="End Vol (nL):",
+            disabled=True,
+            layout=custom_layout,
         )
         self.end_gradient_text_box.observe(self.solvent_data_changed, "value")
 
@@ -235,7 +244,7 @@ class EchoTransferWidget:
         try:
             with self.output:
                 print("Echo transfer triggered")
-                if self.batch_num.value > get_latest_batch(self.session):
+                if self.batch_num.value > get_latest_batch(self.session):  # type: ignore
                     transfer_volumes = 25
                     batch_name = str(self.batch_name_text_box.value)
                     if not batch_name:
@@ -245,10 +254,10 @@ class EchoTransferWidget:
                         # that the first well in the lib plate is assumed to be transferred
                         # to all xtal wells
                         selected_plate = get_lib_plate_model(
-                            self.session, self.lib_plates.value
+                            self.session, str(self.lib_plates.value)
                         )
                         all_lib_plate_wells = get_unused_lib_plate_wells(
-                            self.session, selected_plate
+                            self.session, selected_plate, include_used=False
                         )
                         self.lib_plate_wells = [
                             all_lib_plate_wells[0]
@@ -309,7 +318,8 @@ class EchoTransferWidget:
 
     def update_path(self):
         batch_id = self.batch_num.value
-        path = Path(self.path_text_box.value)
+        # path = Path(self.path_text_box.value)
+        path = self.output_folder
         batch_name = f"{self.xtal_plates.value}-{batch_id}"
         filename = f"echo_protocol_{batch_name}.csv"
         if path.is_dir():

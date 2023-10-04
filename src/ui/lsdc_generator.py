@@ -23,8 +23,9 @@ from models import LibraryWell, XtalWell, Batch
 
 
 class LSDCDataGeneratorWidget:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, output_folder: Path):
         self.session = session
+        self.output_folder = output_folder
         self._init_ui()
 
     def _init_ui(self):
@@ -38,7 +39,7 @@ class LSDCDataGeneratorWidget:
             disabled=False,
             style=dict(description_width="initial"),
         )
-        self.batch_dropdown.observe(self.batch_change_callback, "value")
+        self.batch_dropdown.observe(self.batch_change_callback, "value")  # type: ignore
 
         self.proposal_number_text_box = Text(
             value="",
@@ -72,14 +73,14 @@ class LSDCDataGeneratorWidget:
             path = f"LSDC_{batch.uid}_{batch.name}.xlsx"
         else:
             path = "LSDC_0.xlsx"
-        self.path_text_box.value = path
+        self.path_text_box.value = str(self.output_folder / Path(path))
 
     def generate_harvest_file(self, state):
         try:
             write_lsdc_puck_data(
                 self.session,
-                self.all_batches[self.batch_dropdown.value],
-                self.path_text_box.value,
+                self.all_batches[str(self.batch_dropdown.value)],
+                str(self.path_text_box.value),
             )
         except Exception as e:
             with self.output_widget:

@@ -43,7 +43,7 @@ class BatchTimeStampWidget:
             disabled=False,
             style=dict(description_width="initial"),
         )
-        self.batch_dropdown.observe(self.batch_change_callback, "value")
+        self.batch_dropdown.observe(self.batch_change_callback, "value")  # type: ignore
 
         self.timestamp_textbox = Text(
             value="",
@@ -82,6 +82,8 @@ class BatchTimeStampWidget:
             batch = self.all_batches[str(self.batch_dropdown.value)]
             batch.timestamp = new_timestamp
             self.session.add(batch)
+            with self.output_widget:
+                print(f"Successfully added {new_timestamp} to {batch.name}")
         except Exception as e:
             with self.output_widget:
                 print(
