@@ -64,7 +64,6 @@ class IngestHarvestingDataWidget:
                 puck_references = make_pucks(
                     self.session,
                     puck_names=list(puck_names),
-                    output_widget=self.output_widget,
                 )
                 for index, row in self.df.iterrows():
                     # this entry will be populated if something happened at the well,

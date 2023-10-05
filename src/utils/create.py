@@ -122,7 +122,7 @@ def transfer_xtal_to_pin(
         time_departure=pd.to_datetime(departure_time, format="%d/%m/%Y %H:%M:%S"),
     )
     session.add(pin)
-    xtal_well.pins.append(pin)
+    # xtal_well.pins.append(pin)
 
 
 def create_batch(
@@ -227,7 +227,6 @@ def write_harvest_file(session: Session, batch: Batch, output_filepath: Path):
             "BeamlineProposalID": "",
             "BeamlineID": "",
             "BeamlineUploadDate": "",
-            
         }
         csv_rows.append(row_entry)
 
@@ -254,9 +253,7 @@ def write_lsdc_puck_data(session: Session, batch: Batch, filename: str):
     lsdc_excel_df.to_excel(filename)
 
 
-def make_pucks(session: Session, puck_names: List[str], output_widget):
-    with output_widget:
-        print(puck_names)
+def make_pucks(session: Session, puck_names: List[str]):
     puck_references = {}
     for puck_name in puck_names:
         puck_type = session.query(PuckType).filter_by(name=puck_name).first()

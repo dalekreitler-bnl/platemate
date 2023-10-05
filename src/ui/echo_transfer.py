@@ -207,6 +207,7 @@ class EchoTransferWidget:
         self.xtal_wells_used_slider.disabled = value
 
     def solvent_data_changed(self, state):
+        self.set_widget_values()
         start = self.start_gradient_text_box.value
         stop = self.end_gradient_text_box.value
         step = self.step_gradient_text_box.value
