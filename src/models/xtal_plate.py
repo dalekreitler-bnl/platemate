@@ -37,7 +37,7 @@ class XtalPlateType(Base):
     # Each xtal plate has one plate type
     xtal_plates: Mapped[List["XtalPlate"]] = relationship(back_populates="plate_type")
     # Metadata
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(unique=True, nullable=False)
 
 
 pin_xtal_well_association = Table(
