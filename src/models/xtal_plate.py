@@ -60,7 +60,7 @@ class XtalPlate(Base):
     wells: Mapped[List["XtalWell"]] = relationship(back_populates="plate")
 
     # Metadata
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(unique=True)
 
 
 class XtalWellType(Base):
