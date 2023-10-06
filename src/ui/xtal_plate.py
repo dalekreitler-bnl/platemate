@@ -78,7 +78,11 @@ class XtalPlateCreatorWidget:
                 xtal_plate = XtalPlate(
                     plate_type=xtal_plate_type, name=unique_plate_ids[0]
                 )
+                # add xtal_plate to db
                 self.session.add(xtal_plate)
+                self.session.commit()
+                
+                # now add xtal wells to xtal plate
                 add_xtal_wells_to_plate(self.session, self.df, xtal_plate)
                 self.session.commit()
                 with self.output_widget:

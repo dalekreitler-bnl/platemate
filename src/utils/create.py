@@ -13,6 +13,7 @@ from models import (
     LibraryPlateType,
     LibraryWell,
     LibraryPlate,
+    XtalPlateType,
     XtalPlate,
     XtalWell,
     XtalWellType,
@@ -86,7 +87,16 @@ def add_xtal_wells_to_plate(
         )
         query = None
         try:
-            query = session.query(XtalWellType).filter_by(name=shifter_well_pos).one()
+            print(f"XtalPlateType.uid, XtalWellType.name: {xtal_plate.plate_type_id},{shifter_well_pos}")
+            query = (
+                session.query(XtalWellType)
+                .join(XtalPlateType.well_types)
+                .filter(
+                    XtalPlateType.uid == xtal_plate.plate_type_id,
+                    XtalWellType.name == shifter_well_pos,
+                )
+                .one()
+            )
         except NoResultFound:
             print("double check xtal plate labware!")
         if query:
