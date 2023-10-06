@@ -17,6 +17,7 @@ from ipywidgets import (
 )
 from pathlib import Path
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from typing import List
 
@@ -80,8 +81,16 @@ class XtalPlateCreatorWidget:
                 )
                 # add xtal_plate to db
                 self.session.add(xtal_plate)
-                self.session.commit()
-                
+                try:
+                    self.session.commit()
+                except IntegrityError:
+                    with self.output_widget:
+                        print(
+                            "Error uploading imaging file: "
+                            f"Xtal plate named {unique_plate_ids[0]} already exists in the database."
+                        )
+                        return
+
                 # now add xtal wells to xtal plate
                 add_xtal_wells_to_plate(self.session, self.df, xtal_plate)
                 self.session.commit()
@@ -89,6 +98,7 @@ class XtalPlateCreatorWidget:
                     print("Successfully uploaded imaging file")
             except Exception as e:
                 with self.output_widget:
+                    print(f"Exception type: {type(e).__name__}")
                     print(f"Exception while reading file: {e}")
 
     @property
