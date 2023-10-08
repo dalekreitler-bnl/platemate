@@ -17,7 +17,8 @@ class PuckType(Base):
     uid: Mapped[int] = mapped_column(primary_key=True)
 
     # relationships
-    pucks: Mapped[List["Puck"]] = relationship("Puck", back_populates="puck_type")
+    pucks: Mapped[List["Puck"]] = relationship(
+        "Puck", back_populates="puck_type")
     # Metadata
     name: Mapped[Optional[str]]
 
@@ -44,12 +45,16 @@ class Pin(Base):
 
     position: Mapped[int]  # 1 through 16
     xtal_well_source_id: Mapped[int] = mapped_column(
-        ForeignKey("xtal_well.uid")
+        ForeignKey("xtal_well.uid"),
+        unique=True,
+        nullable=False
     )  # Xtal well source
     xtal_well_source = relationship("XtalWell", back_populates="pins")
 
-    parent_pin_id: Mapped[int] = mapped_column(ForeignKey("pin.uid"), nullable=True)
-    parent: Mapped["Pin"] = relationship(back_populates="children", remote_side=[uid])
+    parent_pin_id: Mapped[int] = mapped_column(
+        ForeignKey("pin.uid"), nullable=True)
+    parent: Mapped["Pin"] = relationship(
+        back_populates="children", remote_side=[uid])
     children: Mapped[List["Pin"]] = relationship(back_populates="parent")
 
     time_departure: Mapped[datetime]  # harvest/freeze time

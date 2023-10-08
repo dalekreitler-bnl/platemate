@@ -16,6 +16,7 @@ from ipywidgets import (
 )
 from pathlib import Path
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import List
 from models import PuckType, EchoTransfer, XtalPlate
 from utils.read import get_xtal_well
@@ -111,7 +112,16 @@ class IngestHarvestingDataWidget:
                                 puck_references,
                             )
 
-                    self.session.commit()
+                    try:
+                        self.session.commit()
+                    except IntegrityError:
+                        self.session.rollback()
+                        with self.output_widget:
+                            print(
+                                f"Error ingesting harvesting file: {uploaded_file['name']}\n"
+                                "Found existing xtal wells in Pin table"
+                            )
+                            return
 
                 with self.output_widget:
                     print("Successfully ingested harvesting data")
