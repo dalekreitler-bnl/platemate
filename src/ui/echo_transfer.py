@@ -154,6 +154,18 @@ class EchoTransferWidget:
         )
         self.replicates_text_box.observe(self.solvent_data_changed, "value")
 
+        self.transfer_volumes_widget = IntText(
+            value=25, description="Vol. (nL):",
+            disabled=False,
+            layout=Layout(width='200px')
+        )
+
+        self.widget_row0 = HBox(
+            [
+                self.transfer_volumes_widget
+            ]
+        )
+
         self.widget_row1 = HBox(
             [self.lib_plates, self.xtal_plates, self.project_dropdown]
         )
@@ -175,8 +187,10 @@ class EchoTransferWidget:
                 self.generate_echo_transfer_button,
             ]
         )
+
         self.vbox = VBox(
             [
+                self.widget_row0,
                 self.widget_row1,
                 self.widget_row2,
                 self.widget_row3,
@@ -255,7 +269,7 @@ class EchoTransferWidget:
                 print("Echo transfer triggered")
                 # type: ignore
                 if self.batch_num.value > get_latest_batch(self.session):
-                    transfer_volumes = 25
+                    transfer_volumes = self.transfer_volumes_widget.value  # 25
                     batch_name = str(self.batch_name_text_box.value)
                     if not batch_name:
                         batch_name = f"Batch {self.batch_num.value}"
