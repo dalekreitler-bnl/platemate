@@ -91,7 +91,8 @@ class EchoTransferWidget:
             button_style="",  # 'success', 'info', 'warning', 'danger' or ''
             layout=Layout(width="200px"),
         )
-        self.generate_echo_transfer_button.on_click(self.echo_transfer_button_triggered)
+        self.generate_echo_transfer_button.on_click(
+            self.echo_transfer_button_triggered)
 
         self.path_text_box = Text(
             value="./echo_protocol_0.csv",
@@ -129,7 +130,8 @@ class EchoTransferWidget:
             min=5,
             max=150,
         )
-        self.start_gradient_text_box.observe(self.solvent_data_changed, "value")
+        self.start_gradient_text_box.observe(
+            self.solvent_data_changed, "value")
 
         self.end_gradient_text_box = FloatText(
             value=20,
@@ -242,10 +244,17 @@ class EchoTransferWidget:
         self.update_batch_name(max_batch)
 
     def echo_transfer_button_triggered(self, state):
+
+        if self.xtal_wells_used_slider.value == 0:
+            with self.output:
+                print("No available xtal wells. Transfer aborted.")
+            return
+
         try:
             with self.output:
                 print("Echo transfer triggered")
-                if self.batch_num.value > get_latest_batch(self.session):  # type: ignore
+                # type: ignore
+                if self.batch_num.value > get_latest_batch(self.session):
                     transfer_volumes = 25
                     batch_name = str(self.batch_name_text_box.value)
                     if not batch_name:
@@ -270,7 +279,8 @@ class EchoTransferWidget:
                                 print("Insufficient wells, cannot create mapping")
                             return
                         transfer_volumes = self.possible_volumes
-                        self.xtal_wells_used_slider.value = len(self.possible_volumes)
+                        self.xtal_wells_used_slider.value = len(
+                            self.possible_volumes)
                     create_batch(
                         self.session,
                         batch_name,
@@ -310,7 +320,8 @@ class EchoTransferWidget:
     def update_batch_name(self, max_batch):
         batch = None
         if self.batch_num.value < max_batch:
-            batch = get_instance(self.session, Batch, **{"uid": self.batch_num.value})
+            batch = get_instance(self.session, Batch, **
+                                 {"uid": self.batch_num.value})
 
         if batch:
             self.batch_name_text_box.value = batch.name
@@ -340,7 +351,8 @@ class EchoTransferWidget:
 
     def xtal_plate_callback(self, state):
         selected_xtal_plate_name = state["new"]
-        selected_plate = get_xtal_plate_model(self.session, selected_xtal_plate_name)
+        selected_plate = get_xtal_plate_model(
+            self.session, selected_xtal_plate_name)
         if selected_plate:
             self.xtal_plate_wells = get_unused_xtal_plate_wells(
                 self.session, selected_plate
