@@ -295,6 +295,8 @@ class EchoTransferWidget:
                 )
                 self.lib_plate_callback({"new": self.lib_plates.value})
                 self.xtal_plate_callback({"new": self.xtal_plates.value})
+                self.session.commit()
+
         except Exception as e:
             with self.output:
                 self.output.clear_output()
