@@ -34,7 +34,8 @@ class BatchTimeStampWidget:
     def _init_ui(self):
         self.datetime_format = "%m/%d/%Y %H:%M:%S"
         batches = get_all_batches(self.session)
-        self.all_batches = {f"{batch.uid} {batch.name}": batch for batch in batches}
+        self.all_batches = {
+            f"{batch.uid} {batch.name}": batch for batch in batches}
 
         self.output_widget = Output()
         self.batch_dropdown = Dropdown(
@@ -43,7 +44,8 @@ class BatchTimeStampWidget:
             disabled=False,
             style=dict(description_width="initial"),
         )
-        self.batch_dropdown.observe(self.batch_change_callback, "value")  # type: ignore
+        self.batch_dropdown.observe(
+            self.batch_change_callback, "value")  # type: ignore
 
         self.timestamp_textbox = Text(
             value="",
@@ -69,7 +71,11 @@ class BatchTimeStampWidget:
     def batch_change_callback(self, state):
         value = state["new"]
         batch = self.all_batches[value]
-        self.timestamp_textbox.value = batch.timestamp.strftime(self.datetime_format)
+        try:
+            self.timestamp_textbox.value = batch.timestamp.strftime(
+                self.datetime_format)
+        except AttributeError:
+            self.timestamp_textbox.value = datetime.now().strftime(self.datetime_format)
 
     def set_timestamp_now(self, state):
         self.timestamp_textbox.value = datetime.now().strftime(self.datetime_format)
@@ -80,10 +86,22 @@ class BatchTimeStampWidget:
                 str(self.timestamp_textbox.value), self.datetime_format
             )
             batch = self.all_batches[str(self.batch_dropdown.value)]
+
+            if batch.timestamp is not None:
+                raise ValueError(
+                    "Cannot overwrite batch time with this widget")
+
             batch.timestamp = new_timestamp
             self.session.add(batch)
+            self.session.commit()
+
             with self.output_widget:
                 print(f"Successfully added {new_timestamp} to {batch.name}")
+
+        except ValueError as e:
+            with self.output_widget:
+                print("Cannot overwrite batch time with this button")
+
         except Exception as e:
             with self.output_widget:
                 print(

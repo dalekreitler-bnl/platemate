@@ -15,7 +15,8 @@ class WellMap(Base):
 
     # Relationships
     # Each well type has one well map
-    well_types: Mapped[List["XtalWellType"]] = relationship(back_populates="well_map")
+    well_types: Mapped[List["XtalWellType"]] = relationship(
+        back_populates="well_map")
 
     # Metadata
     well_pos_x: Mapped[int]
@@ -29,12 +30,17 @@ class Batch(Base):
     uid: Mapped[int] = mapped_column(primary_key=True)
 
     # Relationships
-    echo_transfers: Mapped[List["EchoTransfer"]] = relationship(back_populates="batch")
+    echo_transfers: Mapped[List["EchoTransfer"]
+                           ] = relationship(back_populates="batch")
     project_id: Mapped[int] = mapped_column(ForeignKey("project.uid"))
     project: Mapped[Project] = relationship(back_populates="batches")
 
     # Metadata, if user forgets to manually update this is our upper bound
-    timestamp: Mapped[datetime] = mapped_column(default=datetime.now())
+    creation_timestamp: Mapped[datetime] = mapped_column(
+        default=datetime.now())
+
+    # update when the transfer actually occurs
+    timestamp: Mapped[datetime] = mapped_column(nullable=True)
     name: Mapped[str]
 
 
@@ -56,6 +62,3 @@ class EchoTransfer(Base):
         CheckConstraint("transfer_volume >= 5 AND transfer_volume <= 150"),
         nullable=False,
     )
-
-    # update when the transfer actually occurs
-    timestamp: Mapped[datetime] = mapped_column(nullable=True)
