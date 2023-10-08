@@ -17,7 +17,7 @@ from ipywidgets import (
 from pathlib import Path
 from sqlalchemy.orm import Session
 from typing import List
-from models import PuckType, EchoTransfer
+from models import PuckType, EchoTransfer, XtalPlate
 from utils.read import get_xtal_well
 from utils.create import transfer_xtal_to_pin, make_pucks
 import pandas as pd
@@ -57,14 +57,27 @@ class IngestHarvestingDataWidget:
         self.df = None
         if self.harvesting_file_upload.value:
             try:
-                uploaded_file = self.harvesting_file_upload.value[0]  # type: ignore
-                self.df = pd.read_csv(io.BytesIO(uploaded_file.content), skiprows=8)
-                self.df.rename(columns={";PlateType": "PlateType"}, inplace=True)
+                # type: ignore
+                uploaded_file = self.harvesting_file_upload.value[0]
+                self.df = pd.read_csv(io.BytesIO(
+                    uploaded_file.content), skiprows=8)
+                self.df.rename(
+                    columns={";PlateType": "PlateType"}, inplace=True)
                 puck_names = self.df["DestinationName"].unique()
                 puck_references = make_pucks(
                     self.session,
                     puck_names=list(puck_names),
                 )
+
+                if len(self.df["PlateID"].unique()) > 1:
+                    raise ValueError(
+                        "Cannot ingest csv with multiple plate names")
+
+                if self.session.query(XtalPlate).filter(
+                    XtalPlate.name == self.df["PlateID"].unique()[0]
+                ).one_or_none() is None:
+                    raise ValueError("no existing xtal plate in database")
+
                 for index, row in self.df.iterrows():
                     # this entry will be populated if something happened at the well,
                     # successful or not
@@ -97,13 +110,20 @@ class IngestHarvestingDataWidget:
                                 row["TimeDeparture"],
                                 puck_references,
                             )
+
+                    self.session.commit()
+
                 with self.output_widget:
                     print("Successfully ingested harvesting data")
+                    print(f"from xtal_plate: {self.df['PlateID'].unique()[0]}")
+
             except Exception as e:
                 with self.output_widget:
                     traceback.print_exc()
-                    print(f"Exception while reading file: {e}")
+                    print(
+                        f"Exception reading file {uploaded_file['name']}: {e}"
+                    )
 
-    @property
+    @ property
     def ui(self):
         return self.vbox
