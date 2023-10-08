@@ -86,9 +86,11 @@ class XtalPlateCreatorWidget:
                 )
                 # add xtal_plate to db
                 self.session.add(xtal_plate)
+
                 try:
                     self.session.commit()
                 except IntegrityError:
+                    self.session.rollback()
                     with self.output_widget:
                         print(
                             "Error uploading imaging file: "
