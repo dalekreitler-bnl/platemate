@@ -135,3 +135,81 @@ def get_or_create(session, model, **kwargs):
 
 def get_all_batches(session: Session):
     return session.query(Batch).all()
+
+
+def summarize(session: Session) -> DataFrame:
+    """
+    Summarize mounted pins and return the results as a pandas DataFrame.
+
+    Parameters
+    ----------
+    session : sqlalchemy.orm Session
+        The SQLAlchemy Session object connected to the database.
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        Tabular summary of successfully mounted pins, includes columns:
+        - 'pin_uid': Unique identifier for each pin.
+        - 'xtal_plate': Name of the crystal plate.
+        - 'xtal_well_type': Type of the crystal well.
+        - 'lsdc_sample_name': Sample name combining the project target and pin UID.
+        - 'catalog_id': Catalog ID of the library well.
+        - 'smiles': SMILES notation of the library well.
+        - 'soak_min': Soak time in minutes.
+        - 'harvest_sec': Harvest time in seconds.
+    """
+
+    result = (
+        session.query(
+            Pin,
+            XtalWell,
+            XtalPlate,
+            XtalWellType,
+            EchoTransfer,
+            LibraryWell,
+            Batch,
+            Project,
+        )
+        .join(XtalWell, Pin.xtal_well_source_id == XtalWell.uid)
+        .join(XtalPlate, XtalWell.plate_uid == XtalPlate.uid)
+        .join(XtalWellType, XtalWell.well_type_uid == XtalWellType.uid)
+        .join(EchoTransfer, XtalWell.uid == EchoTransfer.to_well_id)
+        .join(LibraryWell, EchoTransfer.from_well_id == LibraryWell.uid)
+        .join(Batch, EchoTransfer.batch_id == Batch.uid)
+        .join(Project, Batch.project_id == Project.uid)
+        .all()
+    )
+
+    df = DataFrame()
+    for row in result:
+        (
+            pin,
+            xtal_well,
+            xtal_plate,
+            xtal_well_type,
+            echo_transfer,
+            library_well,
+            batch,
+            project,
+        ) = row
+
+        row_entry = {
+            "pin_uid": pin.uid,
+            "xtal_plate": xtal_plate.name,
+            "xtal_well_type": xtal_well_type.name,
+            "lsdc_sample_name": f"{project.target}-{pin.uid}",
+            "catalog_id": library_well.catalog_id,
+            "smiles": library_well.smiles,
+            "soak_min": round(
+                (pin.time_departure.timestamp() -
+                 batch.timestamp.timestamp()) / 60, 1
+            ),
+            "harvest_sec": round(
+                (pin.time_departure.timestamp() -
+                 xtal_well.time_arrival.timestamp()), 1
+            ),
+        }
+        new_df = DataFrame([row_entry])
+        df = pd.concat([df, new_df], ignore_index=True)
+    return df
