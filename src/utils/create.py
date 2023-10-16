@@ -246,25 +246,26 @@ def write_harvest_file(session: Session, batch: Batch, output_filepath: Path):
 
 def write_lsdc_puck_data(session: Session, batch: Batch, filename: str):
     data_rows = []
-    
     query = (
-        session.query(Pin, PuckType)
-        .outerjoin(EchoTransfer, EchoTransfer.to_well_id == Pin.xtal_well_source_id)
-        .join(Puck, Pin.puck_uid == Puck.uid)
-        .join(PuckType, Puck.puck_type_uid == PuckType.uid)
-        .filter(EchoTransfer.batch_id == batch.uid)
-        .all()
+	session.query(Pin, PuckType, Project)
+	.join(EchoTransfer, EchoTransfer.to_well_id == Pin.xtal_well_source_id)
+	.join(Batch, Batch.uid == EchoTransfer.batch_id)
+	.join(Puck, Pin.puck_uid == Puck.uid)
+	.join(PuckType, Puck.puck_type_uid == PuckType.uid)
+	.join(Project, Batch.project_id == Project.uid)
+	.filter(Batch.uid == 1)  # Filter by the desired Batch's uid
+	.all()
     )
     
     for row in query:
-        pin, puck_type = row
+        pin, puck_type, project = row
         sample = {
             "puckName": puck_type.name,
             "position": pin.position,
-            "sampleName": f"{batch.project.target}-{pin.uid}",
+            "sampleName": f"{project.target}-{pin.uid}",
             "model": "",
             "sequence": "",
-            "proposalNum": batch.project.proposal_id,
+            "proposalNum": project.proposal_id,
         }
         data_rows.append(sample)
 
