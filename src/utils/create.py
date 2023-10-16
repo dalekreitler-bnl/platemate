@@ -248,7 +248,7 @@ def write_lsdc_puck_data(session: Session, batch: Batch, filename: str):
     data_rows = []
     
     query = (
-        session.query(Pin, PuckType, Project)
+        session.query(Pin, PuckType)
         .outerjoin(EchoTransfer, EchoTransfer.to_well_id == Pin.xtal_well_source_id)
         .join(Puck, Pin.puck_uid == Puck.uid)
         .join(PuckType, Puck.puck_type_uid == PuckType.uid)
