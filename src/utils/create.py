@@ -261,7 +261,7 @@ def write_lsdc_puck_data(session: Session, batch: Batch, filename: str):
         sample = {
             "puckName": puck_type.name,
             "position": pin.position,
-            "sampleName": f"{batch.project.target}-{pin.uid}"
+            "sampleName": f"{batch.project.target}-{pin.uid}",
             "model": "",
             "sequence": "",
             "proposalNum": batch.project.proposal_id,
