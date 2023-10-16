@@ -246,18 +246,27 @@ def write_harvest_file(session: Session, batch: Batch, output_filepath: Path):
 
 def write_lsdc_puck_data(session: Session, batch: Batch, filename: str):
     data_rows = []
-    for echo_transfer in batch.echo_transfers:
-        pins = echo_transfer.to_well.pins
-        for pin in pins:
-            row = {
-                "puckName": pin.puck.puck_type.name,
-                "position": pin.position,
-                "sampleName": f"{batch.project.target}_{pin.uid}",
-                "model": "",
-                "sequence": "",
-                "proposalNum": pin.puck.proposal_id,
-            }
-            data_rows.append(row)
+    
+    query = (
+        session.query(Pin, PuckType, Project)
+        .outerjoin(EchoTransfer, EchoTransfer.to_well_id == Pin.xtal_well_source_id)
+        .join(Puck, Pin.puck_uid == Puck.uid)
+        .join(PuckType, Puck.puck_type_uid == PuckType.uid)
+        .filter(EchoTransfer.batch_id == batch.uid)
+        .all()
+    )
+    
+    for row in query:
+        pin, puck_type = row
+        sample = {
+            "puckName": puck_type.name,
+            "position": pin.position,
+            "sampleName": f"{batch.project.target}-{pin.uid}"
+            "model": "",
+            "sequence": "",
+            "proposalNum": batch.project.proposal_id,
+        }
+        data_rows.append(sample)
 
     lsdc_excel_df = DataFrame.from_dict(data_rows)
     lsdc_excel_df.to_excel(filename)
