@@ -32,7 +32,7 @@ def get_all_lib_plate_names(session: Session) -> List[str]:
     return [row.name for row in session.query(LibraryPlate).all()]
 
 
-def get_lib_plate_model(session: Session, name: str) -> LibraryPlate | None:
+def get_lib_plate_model(session: Session, name: str) -> "LibraryPlate | None":
     return session.query(LibraryPlate).filter_by(name=name).first()
 
 
@@ -67,7 +67,7 @@ def get_all_xtal_plate_names(session: Session, get_types=False) -> List[str]:
 
 def get_xtal_plate_model(
     session: Session, name: str, get_type=False
-) -> XtalPlate | XtalPlateType | None:
+) -> "XtalPlate | XtalPlateType | None":
     model = XtalPlate
     if get_type:
         model = XtalPlateType
