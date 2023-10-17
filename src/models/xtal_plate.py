@@ -59,6 +59,7 @@ class XtalPlate(Base):
     # Each plate has different wells
     wells: Mapped[List["XtalWell"]] = relationship(back_populates="plate")
 
+    drop_volume: Mapped[int]
     # Metadata
     name: Mapped[str] = mapped_column(unique=True)
 

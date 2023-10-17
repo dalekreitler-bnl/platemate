@@ -43,6 +43,10 @@ class XtalPlateCreatorWidget:
             disabled=False,
             style=dict(description_width="initial"),
         )
+        self.drop_volume = IntText(
+            description="Est. drop vol. (nl)",
+            style=dict(description_width="initial"),
+        )
         self.imaging_file_upload = FileUpload(
             description="Upload imaging file:",
             accept=".csv",
@@ -55,7 +59,7 @@ class XtalPlateCreatorWidget:
         self.create_xtal_plate_button.on_click(
             self.create_xtal_plate_button_triggered)
         self.widget_row = HBox(
-            [self.xtal_plate_types_dropdown, self.imaging_file_upload]
+            [self.xtal_plate_types_dropdown, self.drop_volume, self.imaging_file_upload]
         )
         self.vbox = VBox(
             [self.widget_row, self.create_xtal_plate_button, self.output_widget]
@@ -101,6 +105,15 @@ class XtalPlateCreatorWidget:
                 xtal_plate = XtalPlate(
                     plate_type=xtal_plate_type, name=unique_plate_ids[0]
                 )
+
+                if self.drop_volume.value < 20:
+                    with self.output_widget:
+                        print(
+                            "Drop volume less than 20 nL not allowed."
+                            )
+                        return
+                else:
+                    xtal_plate.drop_volume = self.drop_volume.value
 
                 # add xtal_plate to db
                 self.session.add(xtal_plate)
