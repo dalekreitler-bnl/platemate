@@ -253,7 +253,7 @@ def write_lsdc_puck_data(session: Session, batch: Batch, filename: str):
 	.join(Puck, Pin.puck_uid == Puck.uid)
 	.join(PuckType, Puck.puck_type_uid == PuckType.uid)
 	.join(Project, Batch.project_id == Project.uid)
-	.filter(Batch.uid == 1)  # Filter by the desired Batch's uid
+	.filter(Batch.uid == batch.uid)  # Filter by the desired Batch's uid
 	.all()
     )
     
