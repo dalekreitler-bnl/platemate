@@ -35,7 +35,8 @@ class XtalPlateType(Base):
         back_populates="plate_types",
     )
     # Each xtal plate has one plate type
-    xtal_plates: Mapped[List["XtalPlate"]] = relationship(back_populates="plate_type")
+    xtal_plates: Mapped[List["XtalPlate"]] = relationship(
+        back_populates="plate_type")
     # Metadata
     name: Mapped[str] = mapped_column(unique=True, nullable=False)
 
@@ -54,8 +55,10 @@ class XtalPlate(Base):
 
     # Relationships
     # Each xtal plate has one plate type
-    plate_type_id: Mapped[int] = mapped_column(ForeignKey("xtal_plate_type.uid"))
-    plate_type: Mapped["XtalPlateType"] = relationship(back_populates="xtal_plates")
+    plate_type_id: Mapped[int] = mapped_column(
+        ForeignKey("xtal_plate_type.uid"))
+    plate_type: Mapped["XtalPlateType"] = relationship(
+        back_populates="xtal_plates")
     # Each plate has different wells
     wells: Mapped[List["XtalWell"]] = relationship(back_populates="plate")
 
@@ -94,14 +97,17 @@ class XtalWell(Base):
     drop_position_uid: Mapped[int] = mapped_column(
         ForeignKey("drop_position.uid"), nullable=True
     )
-    drop_position: Mapped["DropPosition"] = relationship(back_populates="xtal_wells")
+    drop_position: Mapped["DropPosition"] = relationship(
+        back_populates="xtal_wells")
 
     # Each plate has a number of wells
-    plate_uid: Mapped[int] = mapped_column(ForeignKey("xtal_plate.uid"), nullable=True)
+    plate_uid: Mapped[int] = mapped_column(
+        ForeignKey("xtal_plate.uid"), nullable=True)
     plate: Mapped["XtalPlate"] = relationship(back_populates="wells")
 
     # Each well has one well type
-    well_type_uid: Mapped[int] = mapped_column(ForeignKey("xtal_well_type.uid"))
+    well_type_uid: Mapped[int] = mapped_column(
+        ForeignKey("xtal_well_type.uid"))
     well_type: Mapped[XtalWellType] = relationship(
         "XtalWellType", back_populates="wells"
     )
@@ -127,10 +133,11 @@ class DropPosition(Base):
     __tablename__ = "drop_position"
     uid: Mapped[int] = mapped_column(primary_key=True)
 
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(unique=True, nullable=False)
     x_offset: Mapped[int]
     y_offset: Mapped[int]
-    xtal_wells: Mapped["XtalWell"] = relationship(back_populates="drop_position")
+    xtal_wells: Mapped["XtalWell"] = relationship(
+        back_populates="drop_position")
 
 
 @listens_for(XtalWell, "before_insert")

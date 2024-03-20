@@ -1,6 +1,6 @@
 from .base import Base
 import enum
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship, mapped_column, Mapped
 from datetime import datetime
 from typing import List, Optional
@@ -20,7 +20,7 @@ class PuckType(Base):
     pucks: Mapped[List["Puck"]] = relationship(
         "Puck", back_populates="puck_type")
     # Metadata
-    name: Mapped[Optional[str]]
+    name: Mapped[str] = mapped_column(unique=True, nullable=False)
 
 
 class Puck(Base):
@@ -59,4 +59,5 @@ class Pin(Base):
 
     time_departure: Mapped[datetime]  # harvest/freeze time
 
-    lsdc_sample_name: Mapped[Optional[str]] = mapped_column(nullable=True)
+    lsdc_sample_name: Mapped[Optional[str]] = mapped_column(
+        unique=True, nullable=True)
