@@ -128,6 +128,12 @@ def get_or_create(session, model, **kwargs):
         return instance
     else:
         instance = model(**kwargs)
+        try:
+            session.add(instance)
+            session.commit()
+        except IntegrityError as e:
+            session.rollback()
+            print(f"caught IntegrityError: {e}")
         return instance
 
 
