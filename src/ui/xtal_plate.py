@@ -5,10 +5,9 @@ from typing import Optional
 
 import pandas as pd
 from ipywidgets import Button, Dropdown, FileUpload, HBox, IntText, Layout, Output, VBox
+from models import XtalPlate
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-
-from models import XtalPlate
 from utils.create import add_xtal_wells_to_plate
 from utils.read import get_all_xtal_plate_names, get_xtal_plate_model
 
@@ -49,12 +48,25 @@ class XtalPlateCreatorWidget:
             [self.widget_row, self.create_xtal_plate_button, self.output_widget]
         )
 
+    def get_rows_to_skip(self, csv_buffer):
+        csv_buffer.seek(0)
+        skiprows = 0
+        for line in csv_buffer:
+            if line.startswith(b";"):
+                skiprows += 1
+            else:
+                break
+        return skiprows
+
     def create_xtal_plate_button_triggered(self, state):
         self.df = None
         if self.imaging_file_upload.value:
             try:
                 uploaded_file = self.imaging_file_upload.value[0]
-                self.df = pd.read_csv(io.BytesIO(uploaded_file.content), skiprows=8)
+                csv_buffer = io.BytesIO(uploaded_file.content)
+                skiprows = self.get_rows_to_skip(csv_buffer)
+                csv_buffer.seek(0)
+                self.df = pd.read_csv(csv_buffer, skiprows=skiprows)
                 # shifter app leaves semi-colons in front of all header text, fix that
                 # add some light spreadsheet validation (unique PlateIDs, PlateTypes)
 
