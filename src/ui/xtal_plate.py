@@ -1,31 +1,16 @@
-from ipywidgets import (
-    Tab,
-    SelectMultiple,
-    Accordion,
-    ToggleButton,
-    VBox,
-    HBox,
-    HTML,
-    IntText,
-    Button,
-    Layout,
-    Dropdown,
-    IntSlider,
-    Text,
-    FileUpload,
-    Output,
-)
-from pathlib import Path
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
-
-from typing import List
-
-from models import LibraryWell, XtalWell, XtalPlate
-from utils.read import get_all_xtal_plate_names, get_xtal_plate_model
-from utils.create import add_xtal_wells_to_plate
 import io
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
+
 import pandas as pd
+from ipywidgets import Button, Dropdown, FileUpload, HBox, IntText, Layout, Output, VBox
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from models import XtalPlate
+from utils.create import add_xtal_wells_to_plate
+from utils.read import get_all_xtal_plate_names, get_xtal_plate_model
 
 
 class XtalPlateCreatorWidget:
@@ -36,8 +21,7 @@ class XtalPlateCreatorWidget:
 
     def _init_ui(self):
         self.output_widget = Output()
-        xtal_plate_types = get_all_xtal_plate_names(
-            self.session, get_types=True)
+        xtal_plate_types = get_all_xtal_plate_names(self.session, get_types=True)
         self.xtal_plate_types_dropdown = Dropdown(
             options=xtal_plate_types,
             description="Xtal plate type:",
@@ -57,8 +41,7 @@ class XtalPlateCreatorWidget:
         self.create_xtal_plate_button = Button(
             description="Import Shifter Data", layout=Layout(width="200px")
         )
-        self.create_xtal_plate_button.on_click(
-            self.create_xtal_plate_button_triggered)
+        self.create_xtal_plate_button.on_click(self.create_xtal_plate_button_triggered)
         self.widget_row = HBox(
             [self.xtal_plate_types_dropdown, self.drop_volume, self.imaging_file_upload]
         )
@@ -71,33 +54,28 @@ class XtalPlateCreatorWidget:
         if self.imaging_file_upload.value:
             try:
                 uploaded_file = self.imaging_file_upload.value[0]
-                self.df = pd.read_csv(io.BytesIO(
-                    uploaded_file.content), skiprows=8)
+                self.df = pd.read_csv(io.BytesIO(uploaded_file.content), skiprows=8)
                 # shifter app leaves semi-colons in front of all header text, fix that
                 # add some light spreadsheet validation (unique PlateIDs, PlateTypes)
-                
-                self.df.rename(
-                    columns={";PlateType": "PlateType"}, inplace=True)
+
+                self.df.rename(columns={";PlateType": "PlateType"}, inplace=True)
                 unique_plate_types = self.df["PlateType"].unique()
 
                 if len(unique_plate_types) != 1:
                     with self.output_widget:
-                        print(
-                            "problem with spreadsheet, multiple PlateTypes detected"
-                            )
+                        print("problem with spreadsheet, multiple PlateTypes detected")
                         return
                 if unique_plate_types[0] != self.xtal_plate_types_dropdown.value:
                     with self.output_widget:
                         print(
                             "Mismatch between selected PlateType and spreadsheet PlateType"
-                            )
+                        )
                         return
 
                 unique_plate_ids = self.df["PlateID"].unique()
                 if len(unique_plate_ids) != 1:
                     with self.output_widget:
-                        print(
-                            "Inconsistent PlateIDs; PlateIDs should all be the same")
+                        print("Inconsistent PlateIDs; PlateIDs should all be the same")
                         return
 
                 xtal_plate_type = get_xtal_plate_model(
@@ -109,9 +87,7 @@ class XtalPlateCreatorWidget:
 
                 if self.drop_volume.value < 20:
                     with self.output_widget:
-                        print(
-                            "Drop volume less than 20 nL not allowed."
-                            )
+                        print("Drop volume less than 20 nL not allowed.")
                         return
                 else:
                     xtal_plate.drop_volume = self.drop_volume.value
@@ -137,7 +113,8 @@ class XtalPlateCreatorWidget:
                 with self.output_widget:
                     print("Successfully uploaded imaging file")
                     print(
-                        f"xtal_plate: {xtal_plate.name}, no. wells: {len(xtal_plate.wells)}")
+                        f"xtal_plate: {xtal_plate.name}, no. wells: {len(xtal_plate.wells)}"
+                    )
             except Exception as e:
                 with self.output_widget:
                     print(f"Exception type: {type(e).__name__}")
