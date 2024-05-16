@@ -29,8 +29,9 @@ import pandas as pd
 
 
 class XtalPlateCreatorWidget:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, data_directory: Optional[Path] = None):
         self.session = session
+        self.data_directory = data_directory
         self._init_ui()
 
     def _init_ui(self):
@@ -132,6 +133,7 @@ class XtalPlateCreatorWidget:
                 # now add xtal wells to xtal plate
                 add_xtal_wells_to_plate(self.session, self.df, xtal_plate)
                 self.session.commit()
+                self.write_df_to_csv(uploaded_file)
                 with self.output_widget:
                     print("Successfully uploaded imaging file")
                     print(
@@ -144,3 +146,17 @@ class XtalPlateCreatorWidget:
     @property
     def ui(self):
         return self.vbox
+
+    def write_df_to_csv(self, uploaded_file):
+        # Dump the dataframe into a csv file
+        if self.data_directory and self.df:
+            imaging_dir = self.data_directory / Path("imaging")
+            imaging_dir.mkdir(parents=True, exist_ok=True)
+            # Get the current timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            uploaded_filename = Path(uploaded_file.name)
+            new_filename = Path(
+                f"{uploaded_filename.stem}_{timestamp}{uploaded_filename.suffix}"
+            )
+
+            self.df.to_csv(imaging_dir / new_filename)
