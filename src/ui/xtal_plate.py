@@ -58,6 +58,11 @@ class XtalPlateCreatorWidget:
                 break
         return skiprows
 
+    def strip_brackets(self, value):
+        if isinstance(value, str):
+            return value.strip("[]")
+        return value
+
     def create_xtal_plate_button_triggered(self, state):
         self.df = None
         if self.imaging_file_upload.value:
@@ -89,6 +94,11 @@ class XtalPlateCreatorWidget:
                     with self.output_widget:
                         print("Inconsistent PlateIDs; PlateIDs should all be the same")
                         return
+
+                # Apply the function to the 'ExternalComment' column
+                self.df["ExternalComment"] = self.df["ExternalComment"].apply(
+                    self.strip_brackets
+                )
 
                 xtal_plate_type = get_xtal_plate_model(
                     self.session, self.xtal_plate_types_dropdown.value, get_type=True
