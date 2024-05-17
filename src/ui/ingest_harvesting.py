@@ -97,6 +97,7 @@ class IngestHarvestingDataWidget:
                                 row["DestinationName"],
                                 row["DestinationLocation"],
                                 row["TimeDeparture"],
+                                row["PickDuration"],
                                 puck_references,
                             )
 
@@ -126,7 +127,7 @@ class IngestHarvestingDataWidget:
 
     def write_df_to_csv(self, uploaded_file):
         # Dump the dataframe into a csv file
-        if self.data_directory and self.df:
+        if self.data_directory and self.df is not None:
             imaging_dir = self.data_directory / Path("harvesting")
             imaging_dir.mkdir(parents=True, exist_ok=True)
             # Get the current timestamp

@@ -5,9 +5,10 @@ from typing import Optional
 
 import pandas as pd
 from ipywidgets import Button, Dropdown, FileUpload, HBox, IntText, Layout, Output, VBox
-from models import XtalPlate
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+
+from models import XtalPlate
 from utils.create import add_xtal_wells_to_plate
 from utils.read import get_all_xtal_plate_names, get_xtal_plate_model
 
@@ -56,7 +57,7 @@ class XtalPlateCreatorWidget:
                 skiprows += 1
             else:
                 break
-        return skiprows
+        return skiprows - 1
 
     def strip_brackets(self, value):
         if isinstance(value, str):
@@ -148,7 +149,7 @@ class XtalPlateCreatorWidget:
 
     def write_df_to_csv(self, uploaded_file):
         # Dump the dataframe into a csv file
-        if self.data_directory and self.df:
+        if self.data_directory and self.df is not None:
             imaging_dir = self.data_directory / Path("imaging")
             imaging_dir.mkdir(parents=True, exist_ok=True)
             # Get the current timestamp
