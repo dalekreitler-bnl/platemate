@@ -1,35 +1,24 @@
-from ipywidgets import (
-    Tab,
-    SelectMultiple,
-    Accordion,
-    ToggleButton,
-    VBox,
-    HBox,
-    HTML,
-    Output,
-    Button,
-    Layout,
-    Dropdown,
-    IntSlider,
-    Text,
-    FileUpload,
-)
-from pathlib import Path
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
-from typing import List
-from models import PuckType, EchoTransfer, XtalPlate
-from utils.read import get_xtal_well
-from utils.create import transfer_xtal_to_pin, make_pucks
-import pandas as pd
 import io
 import traceback
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
+
+import pandas as pd
+from ipywidgets import Button, FileUpload, HBox, Layout, Output, VBox
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from models import EchoTransfer, PuckType, XtalPlate
+from utils import get_rows_to_skip, write_df_to_csv
+from utils.create import make_pucks, transfer_xtal_to_pin
+from utils.read import get_xtal_well
 
 
 class IngestHarvestingDataWidget:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, data_directory: Optional[Path]):
         self.session = session
-
+        self.data_directory = data_directory
         self._init_ui()
 
     def _init_ui(self):
@@ -60,10 +49,11 @@ class IngestHarvestingDataWidget:
             try:
                 # type: ignore
                 uploaded_file = self.harvesting_file_upload.value[0]
-                self.df = pd.read_csv(io.BytesIO(
-                    uploaded_file.content), skiprows=8)
-                self.df.rename(
-                    columns={";PlateType": "PlateType"}, inplace=True)
+                csv_buffer = io.BytesIO(uploaded_file.content)
+                skiprows = get_rows_to_skip(csv_buffer)
+                csv_buffer.seek(0)
+                self.df = pd.read_csv(csv_buffer, skiprows=skiprows)
+                self.df.rename(columns={";PlateType": "PlateType"}, inplace=True)
                 puck_names = self.df["DestinationName"].unique()
                 puck_references = make_pucks(
                     self.session,
@@ -71,12 +61,14 @@ class IngestHarvestingDataWidget:
                 )
 
                 if len(self.df["PlateID"].unique()) > 1:
-                    raise ValueError(
-                        "Cannot ingest csv with multiple plate names")
+                    raise ValueError("Cannot ingest csv with multiple plate names")
 
-                if self.session.query(XtalPlate).filter(
-                    XtalPlate.name == self.df["PlateID"].unique()[0]
-                ).one_or_none() is None:
+                if (
+                    self.session.query(XtalPlate)
+                    .filter(XtalPlate.name == self.df["PlateID"].unique()[0])
+                    .one_or_none()
+                    is None
+                ):
                     raise ValueError("no existing xtal plate in database")
 
                 for index, row in self.df.iterrows():
@@ -109,6 +101,7 @@ class IngestHarvestingDataWidget:
                                 row["DestinationName"],
                                 row["DestinationLocation"],
                                 row["TimeDeparture"],
+                                row["PickDuration"].split('.')[0], #discard <1 sec precision
                                 puck_references,
                             )
 
@@ -122,7 +115,7 @@ class IngestHarvestingDataWidget:
                                 "Found existing xtal wells in Pin table"
                             )
                             return
-
+                write_df_to_csv(self.data_directory, self.df, uploaded_file)
                 with self.output_widget:
                     print("Successfully ingested harvesting data")
                     print(f"from xtal_plate: {self.df['PlateID'].unique()[0]}")
@@ -130,10 +123,8 @@ class IngestHarvestingDataWidget:
             except Exception as e:
                 with self.output_widget:
                     traceback.print_exc()
-                    print(
-                        f"Exception reading file {uploaded_file['name']}: {e}"
-                    )
+                    print(f"Exception reading file {uploaded_file['name']}: {e}")
 
-    @ property
+    @property
     def ui(self):
         return self.vbox

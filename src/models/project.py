@@ -7,7 +7,7 @@ Created on Sun Aug 13 13:58:14 2023
 """
 
 from .base import Base
-from sqlalchemy import CheckConstraint
+from sqlalchemy import CheckConstraint, UniqueConstraint
 
 from datetime import datetime
 from sqlalchemy.orm import mapped_column, Mapped, relationship
@@ -31,11 +31,13 @@ class Project(Base):
     # simple checks
     __table_args__ = (
         CheckConstraint(
-            f"year >= 2023 AND year <= {datetime.now().year}",
+            f"year >= {datetime.now().year} AND year <= {datetime.now().year+4}",
             name="valid_year_constraint",
         ),
-        CheckConstraint("cycle >= 1 AND cycle <= 3", name="valid_cycle_constraint"),
+        CheckConstraint("cycle >= 1 AND cycle <= 3",
+                        name="valid_cycle_constraint"),
         CheckConstraint("visit >= 1", name="valid_visit_constraint"),
+        UniqueConstraint("visit", "target"),
     )
 
 

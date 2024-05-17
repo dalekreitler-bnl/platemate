@@ -1,5 +1,11 @@
 from .base import Base
-from .library_plate import LibraryPlate, LibraryPlateType, LibraryWell, LibraryWellType
+from .library_plate import (
+    LibraryPlate,
+    LibraryPlateType,
+    LibraryWell,
+    LibraryWellType,
+    lib_ptype_wtype_association
+)
 from .xtal_plate import (
     XtalPlate,
     XtalPlateType,

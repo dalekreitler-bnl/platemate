@@ -4,6 +4,7 @@ from sqlalchemy import (
     Integer,
     ForeignKey,
     Table,
+    UniqueConstraint
 )
 from sqlalchemy.orm import relationship, mapped_column, Mapped, Session
 from sqlalchemy.event import listens_for
@@ -15,6 +16,7 @@ lib_ptype_wtype_association = Table(
     Base.metadata,
     Column("plate_type_uid", Integer, ForeignKey("library_plate_type.uid")),
     Column("well_type_uid", Integer, ForeignKey("library_well_type.uid")),
+    UniqueConstraint('plate_type_uid', 'well_type_uid')
 )
 
 
@@ -34,7 +36,7 @@ class LibraryPlateType(Base):
     )
 
     # Metadata
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(unique=True)
     rows: Mapped[Optional[int]]
     columns: Mapped[Optional[int]]
 
@@ -54,7 +56,7 @@ class LibraryPlate(Base):
     wells: Mapped[List["LibraryWell"]] = relationship(back_populates="plate")
 
     # Metadata
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(unique=True)
 
 
 class LibraryWellType(Base):
