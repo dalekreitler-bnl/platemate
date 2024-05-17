@@ -1,30 +1,31 @@
 # Utility functions to create rows in different tables
-from typing import List, Dict
 import typing
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import NoResultFound
-from pandas import DataFrame
-import pandas as pd
 from pathlib import Path
+from typing import Dict, List
+
+import pandas as pd
 
 # if typing.TYPE_CHECKING:
 from models import (
-    LibraryWellType,
+    Batch,
+    DropPosition,
+    EchoTransfer,
+    LibraryPlate,
     LibraryPlateType,
     LibraryWell,
-    LibraryPlate,
-    XtalPlateType,
-    XtalPlate,
-    XtalWell,
-    XtalWellType,
-    DropPosition,
+    LibraryWellType,
     Pin,
+    Project,
     Puck,
     PuckType,
-    EchoTransfer,
-    Batch,
-    Project,
+    XtalPlate,
+    XtalPlateType,
+    XtalWell,
+    XtalWellType,
 )
+from pandas import DataFrame
+from sqlalchemy.exc import NoResultFound
+from sqlalchemy.orm import Session
 
 # Database related util functions
 
@@ -87,7 +88,9 @@ def add_xtal_wells_to_plate(
         )
         query = None
         try:
-            print(f"XtalPlateType.uid, XtalWellType.name: {xtal_plate.plate_type_id},{shifter_well_pos}")
+            print(
+                f"XtalPlateType.uid, XtalWellType.name: {xtal_plate.plate_type_id},{shifter_well_pos}"
+            )
             query = (
                 session.query(XtalWellType)
                 .join(XtalPlateType.well_types)
@@ -122,6 +125,7 @@ def transfer_xtal_to_pin(
     destination_puck: str,
     pin_location: int,
     departure_time: str,
+    pick_duration: str,
     puck_references: Dict[str, Puck],
 ):
     # puck = session.query(Puck).filter(Puck.puck_type.has(name=destination_puck)).one()
@@ -130,6 +134,7 @@ def transfer_xtal_to_pin(
         puck=puck_references[destination_puck],
         position=pin_location,
         time_departure=pd.to_datetime(departure_time, format="%d/%m/%Y %H:%M:%S"),
+        pick_duration=pd.to_datetime(pick_duration, format="%H:%M:%S"),
     )
     session.add(pin)
     # xtal_well.pins.append(pin)
@@ -247,16 +252,16 @@ def write_harvest_file(session: Session, batch: Batch, output_filepath: Path):
 def write_lsdc_puck_data(session: Session, batch: Batch, filename: str):
     data_rows = []
     query = (
-	session.query(Pin, PuckType, Project)
-	.join(EchoTransfer, EchoTransfer.to_well_id == Pin.xtal_well_source_id)
-	.join(Batch, Batch.uid == EchoTransfer.batch_id)
-	.join(Puck, Pin.puck_uid == Puck.uid)
-	.join(PuckType, Puck.puck_type_uid == PuckType.uid)
-	.join(Project, Batch.project_id == Project.uid)
-	.filter(Batch.uid == batch.uid)  # Filter by the desired Batch's uid
-	.all()
+        session.query(Pin, PuckType, Project)
+        .join(EchoTransfer, EchoTransfer.to_well_id == Pin.xtal_well_source_id)
+        .join(Batch, Batch.uid == EchoTransfer.batch_id)
+        .join(Puck, Pin.puck_uid == Puck.uid)
+        .join(PuckType, Puck.puck_type_uid == PuckType.uid)
+        .join(Project, Batch.project_id == Project.uid)
+        .filter(Batch.uid == batch.uid)  # Filter by the desired Batch's uid
+        .all()
     )
-    
+
     for row in query:
         pin, puck_type, project = row
         sample = {
