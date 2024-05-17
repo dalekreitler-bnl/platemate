@@ -66,23 +66,26 @@ class XtalPlateCreatorWidget:
                 self.df = pd.read_csv(csv_buffer, skiprows=skiprows)
                 # shifter app leaves semi-colons in front of all header text, fix that
                 # add some light spreadsheet validation (unique PlateIDs, PlateTypes)
+                # make sure the spreadsheet is not empty
 
                 self.df.rename(columns={";PlateType": "PlateType"}, inplace=True)
                 unique_plate_types = self.df["PlateType"].unique()
 
+                if len(self.df) == 0:
+                    with self.output_widget:
+                        print("Empty xtal file, aborting import")
+                        return
+                
                 if len(unique_plate_types) != 1:
                     with self.output_widget:
                         print("problem with spreadsheet, multiple PlateTypes detected")
                         return
+                
                 if unique_plate_types[0] != self.xtal_plate_types_dropdown.value:
                     with self.output_widget:
                         print(
                             "Mismatch between selected PlateType and spreadsheet PlateType"
                         )
-                        return
-                if len(self.df) == 0:
-                    with self.output_widget:
-                        print("Empty xtal file, aborting import")
                         return
 
                 unique_plate_ids = self.df["PlateID"].unique()
