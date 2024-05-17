@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from models import XtalPlate
+from utils import get_rows_to_skip, write_df_to_csv
 from utils.create import add_xtal_wells_to_plate
 from utils.read import get_all_xtal_plate_names, get_xtal_plate_model
 
@@ -49,16 +50,6 @@ class XtalPlateCreatorWidget:
             [self.widget_row, self.create_xtal_plate_button, self.output_widget]
         )
 
-    def get_rows_to_skip(self, csv_buffer):
-        csv_buffer.seek(0)
-        skiprows = 0
-        for line in csv_buffer:
-            if line.startswith(b";"):
-                skiprows += 1
-            else:
-                break
-        return skiprows - 1
-
     def strip_brackets(self, value):
         if isinstance(value, str):
             return value.strip("[]")
@@ -70,7 +61,7 @@ class XtalPlateCreatorWidget:
             try:
                 uploaded_file = self.imaging_file_upload.value[0]
                 csv_buffer = io.BytesIO(uploaded_file.content)
-                skiprows = self.get_rows_to_skip(csv_buffer)
+                skiprows = get_rows_to_skip(csv_buffer)
                 csv_buffer.seek(0)
                 self.df = pd.read_csv(csv_buffer, skiprows=skiprows)
                 # shifter app leaves semi-colons in front of all header text, fix that
@@ -136,7 +127,7 @@ class XtalPlateCreatorWidget:
                 # now add xtal wells to xtal plate
                 add_xtal_wells_to_plate(self.session, self.df, xtal_plate)
                 self.session.commit()
-                self.write_df_to_csv(uploaded_file)
+                write_df_to_csv(self.data_directory, self.df, uploaded_file)
                 with self.output_widget:
                     print("Successfully uploaded imaging file")
                     print(
@@ -150,17 +141,3 @@ class XtalPlateCreatorWidget:
     @property
     def ui(self):
         return self.vbox
-
-    def write_df_to_csv(self, uploaded_file):
-        # Dump the dataframe into a csv file
-        if self.data_directory and self.df is not None:
-            imaging_dir = self.data_directory / Path("imaging")
-            imaging_dir.mkdir(parents=True, exist_ok=True)
-            # Get the current timestamp
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            uploaded_filename = Path(uploaded_file.name)
-            new_filename = Path(
-                f"{uploaded_filename.stem}_{timestamp}{uploaded_filename.suffix}"
-            )
-
-            self.df.to_csv(imaging_dir / new_filename)
