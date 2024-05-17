@@ -180,6 +180,7 @@ def transfer_xtal_to_pin(
         position=pin_location,
         time_departure=pd.to_datetime(departure_time, format="%d/%m/%Y %H:%M:%S"),
         pick_duration=pd.to_datetime(pick_duration, format="%H:%M:%S"),
+    )
 
     session.add(pin)
     # xtal_well.pins.append(pin)
