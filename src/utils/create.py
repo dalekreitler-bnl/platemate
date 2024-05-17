@@ -1,32 +1,35 @@
 # Utility functions to create rows in different tables
-from typing import List, Dict
 import typing
+from pathlib import Path
+from typing import Dict, List
+import pandas as pd
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import NoResultFound, IntegrityError
 from pandas import DataFrame
-import pandas as pd
-from pathlib import Path
 from .read import get_or_create
 
 # if typing.TYPE_CHECKING:
 from models import (
-    LibraryWellType,
+    Batch,
+    DropPosition,
+    EchoTransfer,
+    LibraryPlate,
     LibraryPlateType,
     LibraryWell,
-    LibraryPlate,
-    XtalPlateType,
-    XtalPlate,
-    XtalWell,
-    XtalWellType,
-    DropPosition,
+    LibraryWellType,
     Pin,
+    Project,
     Puck,
     PuckType,
-    EchoTransfer,
-    Batch,
-    Project,
+    XtalPlate,
+    XtalPlateType,
+    XtalWell,
+    XtalWellType,
     lib_ptype_wtype_association,
 )
+from pandas import DataFrame
+from sqlalchemy.exc import NoResultFound
+from sqlalchemy.orm import Session
 
 
 # Database related util functions
@@ -129,7 +132,9 @@ def add_xtal_wells_to_plate(
         query = None
         try:
             print(
-                f"XtalPlateType.uid, XtalWellType.name: {xtal_plate.plate_type_id},{shifter_well_pos}")
+                f"XtalPlateType.uid, XtalWellType.name: {xtal_plate.plate_type_id},{shifter_well_pos}"
+            )
+
             query = (
                 session.query(XtalWellType)
                 .join(XtalPlateType.well_types)
@@ -165,6 +170,7 @@ def transfer_xtal_to_pin(
     destination_puck: str,
     pin_location: int,
     departure_time: str,
+    pick_duration: str,
     puck_references: Dict[str, Puck],
 ):
     # puck = session.query(Puck).filter(Puck.puck_type.has(name=destination_puck)).one()
@@ -172,9 +178,9 @@ def transfer_xtal_to_pin(
         xtal_well_source=xtal_well,
         puck=puck_references[destination_puck],
         position=pin_location,
-        time_departure=pd.to_datetime(
-            departure_time, format="%d/%m/%Y %H:%M:%S"),
-    )
+        time_departure=pd.to_datetime(departure_time, format="%d/%m/%Y %H:%M:%S"),
+        pick_duration=pd.to_datetime(pick_duration, format="%H:%M:%S"),
+
     session.add(pin)
     # xtal_well.pins.append(pin)
 
