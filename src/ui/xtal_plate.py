@@ -89,6 +89,10 @@ class XtalPlateCreatorWidget:
                             "Mismatch between selected PlateType and spreadsheet PlateType"
                         )
                         return
+                if len(self.df) == 0:
+                    with self.output_widget:
+                        print("Empty xtal file, aborting import")
+                        return
 
                 unique_plate_ids = self.df["PlateID"].unique()
                 if len(unique_plate_ids) != 1:
