@@ -101,7 +101,7 @@ class IngestHarvestingDataWidget:
                                 row["DestinationName"],
                                 row["DestinationLocation"],
                                 row["TimeDeparture"],
-                                row["PickDuration"],
+                                row["PickDuration"].split('.')[0], #discard <1 sec precision
                                 puck_references,
                             )
 
