@@ -2,8 +2,11 @@
 import typing
 from pathlib import Path
 from typing import Dict, List
-
 import pandas as pd
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import NoResultFound, IntegrityError
+from pandas import DataFrame
+from .read import get_or_create
 
 # if typing.TYPE_CHECKING:
 from models import (
@@ -22,10 +25,12 @@ from models import (
     XtalPlateType,
     XtalWell,
     XtalWellType,
+    lib_ptype_wtype_association,
 )
 from pandas import DataFrame
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
+
 
 # Database related util functions
 
@@ -36,35 +41,67 @@ def add_well_type_to_plate_type(
     plate_type: LibraryPlateType,
 ) -> None:
     """
-    Adds a library well type to a library plate type
+    Adds a library well type to a library plate type, but check that the library
+    plate type exists in the database and that the library well types have not
+    been previously loaded.
     """
-    for name in well_type_names:
-        lib_well_type = LibraryWellType(**name)
-        session.add(lib_well_type)
-        plate_type.well_types.append(lib_well_type)
+
+    with session.no_autoflush:
+        plate_type_ = session.query(
+            LibraryPlateType).filter_by(name=plate_type.name).first()
+
+    if plate_type_ is None:
+        raise ValueError(f"LibraryPlateType not found in db for {plate_type}")
+
+    with session.no_autoflush:
+        query = session.query(lib_ptype_wtype_association).filter_by(
+            plate_type_uid=plate_type_.uid).first()
+
+    if query:
+        raise ValueError(
+            "Library already loaded (at least partially) for this plate type"
+        )
+
+    else:
+        for name in well_type_names:
+            lib_well_type = LibraryWellType(**name)
+            session.add(lib_well_type)
+            plate_type.well_types.append(lib_well_type)
+
+        try:
+            session.add(plate_type)
+            session.commit()
+        except IntegrityError as e:
+            session.rollback()
+            print(f"caught IntegrityError: {e}")
 
 
 def add_lib_well_to_plate(
     session: Session, df: DataFrame, lib_plate: LibraryPlate
 ) -> None:
     """
-    Adds a library well to a library plate
+    Adds a library well to a library plate, only if the library well type does
+    not already exist in the library plate type well type association table.
+    No_autoflush is required to avoid raising an IntegrityError during the first
+    query.
     """
 
     for index, row in df.iterrows():
         query = None
         try:
-            query = (
-                session.query(LibraryWellType)
-                .join(LibraryPlateType.well_types)
-                .filter(
-                    LibraryPlateType.uid == lib_plate.library_plate_type_uid,
-                    LibraryWellType.name == row["well"],
+            with session.no_autoflush:
+                query = (
+                    session.query(LibraryWellType)
+                    .join(LibraryPlateType.well_types)
+                    .filter(
+                        LibraryPlateType.uid == lib_plate.library_plate_type_uid,
+                        LibraryWellType.name == row["well"],
+                    )
+                    .one()
                 )
-                .one()
-            )
         except NoResultFound:
-            print(f"No matching well type found {row['well']}, double check labware")
+            print(
+                f"No matching well type found {row['well']}, double check labware")
 
         if query:
             lib_well = LibraryWell(
@@ -74,6 +111,12 @@ def add_lib_well_to_plate(
                 smiles=row["smiles"],
             )
             session.add(lib_well)
+
+    try:
+        session.commit()
+    except IntegrityError as e:
+        session.rollback()
+        print(f"caught IntegrityError: {e}")
 
 
 def add_xtal_wells_to_plate(
@@ -91,6 +134,7 @@ def add_xtal_wells_to_plate(
             print(
                 f"XtalPlateType.uid, XtalWellType.name: {xtal_plate.plate_type_id},{shifter_well_pos}"
             )
+
             query = (
                 session.query(XtalWellType)
                 .join(XtalPlateType.well_types)
@@ -108,7 +152,8 @@ def add_xtal_wells_to_plate(
 
             # now update well with drop position
             if pd.isna(row["ExternalComment"]):
-                drop_position = session.query(DropPosition).filter_by(name="c").one()
+                drop_position = session.query(
+                    DropPosition).filter_by(name="c").one()
                 xtal_well.drop_position = drop_position
             else:
                 drop_position = (
@@ -135,7 +180,7 @@ def transfer_xtal_to_pin(
         position=pin_location,
         time_departure=pd.to_datetime(departure_time, format="%d/%m/%Y %H:%M:%S"),
         pick_duration=pd.to_datetime(pick_duration, format="%H:%M:%S"),
-    )
+
     session.add(pin)
     # xtal_well.pins.append(pin)
 
@@ -283,6 +328,7 @@ def make_pucks(session: Session, puck_names: List[str]):
     for puck_name in puck_names:
         puck_type = session.query(PuckType).filter_by(name=puck_name).first()
         if puck_type:
-            puck_references[puck_name] = Puck(puck_type=puck_type, proposal_id=1)
+            puck_references[puck_name] = Puck(
+                puck_type=puck_type, proposal_id=1)
             session.commit()
     return puck_references

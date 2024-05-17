@@ -1,7 +1,7 @@
 from typing import List, Dict
 import typing
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import NoResultFound
+from sqlalchemy.exc import NoResultFound, IntegrityError
 from sqlalchemy import func
 from pandas import DataFrame
 import pandas as pd
@@ -128,8 +128,12 @@ def get_or_create(session, model, **kwargs):
         return instance
     else:
         instance = model(**kwargs)
-        session.add(instance)
-        session.commit()
+        try:
+            session.add(instance)
+            session.commit()
+        except IntegrityError as e:
+            session.rollback()
+            print(f"caught IntegrityError: {e}")
         return instance
 
 
