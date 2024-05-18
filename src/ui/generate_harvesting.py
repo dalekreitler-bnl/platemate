@@ -24,7 +24,10 @@ from models import LibraryWell, XtalWell, Batch
 
 class GenerateHarvestDataWidget:
     def __init__(self, session: Session, output_folder: Path):
-        self.output_folder = output_folder
+        if output_folder is None or not output_folder.exists():
+            raise ValueError("Template harvesting output directory not given or doesn't exist")
+        else:
+            self.output_folder = output_folder
         self.session = session
         self._init_ui()
 

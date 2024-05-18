@@ -16,8 +16,11 @@ from utils.read import get_all_xtal_plate_names, get_xtal_plate_model
 
 class XtalPlateCreatorWidget:
     def __init__(self, session: Session, data_directory: Optional[Path] = None):
+        if data_directory is None or not data_directory.exists():
+            raise ValueError("Imaging data directory not given or needs to be created")
+        else:
+            self.data_directory = data_directory
         self.session = session
-        self.data_directory = data_directory
         self._init_ui()
 
     def _init_ui(self):

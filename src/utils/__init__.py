@@ -13,8 +13,6 @@ from .update import *
 def write_df_to_csv(data_directory: Optional[Path], df: pd.DataFrame, uploaded_file):
     # Dump the dataframe into a csv file
     if data_directory and df is not None:
-        imaging_dir = data_directory / Path("harvesting")
-        imaging_dir.mkdir(parents=True, exist_ok=True)
         # Get the current timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         uploaded_filename = Path(uploaded_file.name)
@@ -22,7 +20,7 @@ def write_df_to_csv(data_directory: Optional[Path], df: pd.DataFrame, uploaded_f
             f"{uploaded_filename.stem}_{timestamp}{uploaded_filename.suffix}"
         )
 
-        df.to_csv(imaging_dir / new_filename)
+        df.to_csv(data_directory / new_filename)
 
 
 def get_rows_to_skip(csv_buffer):
