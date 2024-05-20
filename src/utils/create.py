@@ -184,7 +184,7 @@ def transfer_xtal_to_pin(
         puck=puck_references[destination_puck],
         position=pin_location,
         time_departure=pd.to_datetime(departure_time, format="%d/%m/%Y %H:%M:%S"),
-        pick_duration=pd.to_deltatime(pick_duration).total_seconds(),
+        pick_duration=pd.to_timedelta(pick_duration).total_seconds(),
     )
 
     session.add(pin)
