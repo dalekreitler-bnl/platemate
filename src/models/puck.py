@@ -57,7 +57,10 @@ class Pin(Base):
     children: Mapped[List["Pin"]] = relationship(back_populates="parent")
 
     time_departure: Mapped[datetime]  # harvest/freeze time
-    pick_duration: Mapped[datetime]  # Time difference between arrival and departure
+
+    # time difference between arrival and departure, we can calculate this from
+    # time arrival and time departure, but shifter records so we will as well
+    pick_duration: Mapped[float] = mapped_column(nullable=True)
 
     lsdc_sample_name: Mapped[Optional[str]] = mapped_column(
         unique=True, nullable=True)

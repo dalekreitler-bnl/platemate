@@ -173,9 +173,9 @@ def transfer_xtal_to_pin(
 ):
     # puck = session.query(Puck).filter(Puck.puck_type.has(name=destination_puck)).one()
     if len(pick_duration.split(':')) == 2:
-        pick_duration_format="%M:%S"
+        pick_duration = "".join(['00:',pick_duration])
     elif len(pick_duration.split(':')) == 3:
-        pick_duration_format="%H:%M:%S"
+        pick_duration = pick_duration
     else:
         raise ValueError("Pick duration time format not consistent with M:S or H:M:S")
 
@@ -184,7 +184,7 @@ def transfer_xtal_to_pin(
         puck=puck_references[destination_puck],
         position=pin_location,
         time_departure=pd.to_datetime(departure_time, format="%d/%m/%Y %H:%M:%S"),
-        pick_duration=pd.to_datetime(pick_duration, format=pick_duration_format),
+        pick_duration=pd.to_deltatime(pick_duration).total_seconds(),
     )
 
     session.add(pin)
